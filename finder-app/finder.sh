@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Dana Marble
-# Assignment 1
+# Author: Dana Marble
+# Description: Homework Assignment 1
 
 filesdir=$1
 searchstr=$2
