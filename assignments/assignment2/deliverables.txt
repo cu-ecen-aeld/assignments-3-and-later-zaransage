@@ -1,0 +1,18 @@
+
+
+Validation/Deliverables:
+Your assignments/assignment2/cross-compile.txt file should show the version, configuration and sysroot path (output of -print-sysroot)
+
+The finder-test.sh script should return “success” when run.
+
+Your writer application should meet requirements from assignment 1 regarding error handling.
+
+Ensure all error handling has been implemented for writer.c.
+
+Ensure syslog logging is setup and working properly (you should see messages logged to /var/log/syslog on your Ubuntu VM).
+
+If using Windows Subsystem for Linux, you may need to manually start rsyslog with `sudo service rsyslog start`
+
+5. Your assignments/assignment2/fileresult.txt should show that you were able to cross compile successfully
+
+6. Your github actions automated test script should pass on your repository and the “Actions” tab should show a successful run on your last commit.
