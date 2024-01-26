@@ -1,4 +1,6 @@
-
+#include <stdio.h>
+#include <syslog.h>
+#include <errno.h>
 
 
 /* 
@@ -11,3 +13,45 @@ Use the syslog capability to write a message “Writing <string> to <file>” wh
 Use the syslog capability to log any unexpected errors with LOG_ERR level. 
 
  * */
+
+/*
+Check to see if the first argument is specified
+*/
+
+int argumentCheck() {
+    openlog(NULL,0,LOG_USER)
+    syslog(LOG_ERR,"Invalid number of arguments: %d", argc);
+}
+
+/*
+Check to see if the second argument is specified
+*/
+
+/*
+Create the file asked for
+*/
+
+int file_create(int file){
+
+/* I might need to define the file as a memory object here*/
+
+  const int err = errno;
+
+  fd = fopen(file, O_WRONLY| O_TRUNC);
+
+  if (fd == -1){
+    syslog(LOG_ERR, "File does not exist: %s", fd, strerror (err));  
+  } else {
+    fclose(fd)
+  }
+}
+
+/*
+Set up Logger and syslog
+Facilities and Priorities
+
+*/
+
+int main() {
+
+}
