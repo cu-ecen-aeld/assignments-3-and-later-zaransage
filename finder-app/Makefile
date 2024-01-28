@@ -1,7 +1,7 @@
 GCC            := "/usr/bin/gcc"
 CROSS_COMPILE  := "aarch64-none-linux-gnu-"
 SOURCE := writer.c
-TARGET := writer.o
+TARGET := writer
 
 default: 
 	$(GCC) $(SOURCE) -o $(TARGET)
