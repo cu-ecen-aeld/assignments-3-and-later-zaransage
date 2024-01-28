@@ -7,7 +7,7 @@
 #include <string.h>
 
 /*
-Outside Reference: https://www.tutorialspoint.com/cprogramming/c_command_line_arguments.htm
+Author: Dana Marble
 */
 
 
