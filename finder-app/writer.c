@@ -39,17 +39,17 @@ int main(int argc, char *argv[]){
 
   if(argc == 1) {
     printf("You have not specified 'writefile' argument\n");
-    syslog(LOG_ERR,"Invalid number of arguments: You have not specified a \'writefile\' argument: %s", strerror(err));
+    //syslog(LOG_ERR,"Invalid number of arguments: You have not specified a \'writefile\' argument: %s", strerror(err));
     exit(1);
   }
   if(argc < 3) {
     printf("You have not specified writestr argument\n");
-    syslog(LOG_ERR,"Invalid number of arguments: You have not specified a \'writestr\' argument: %s", strerror(err));
+    //syslog(LOG_ERR,"Invalid number of arguments: You have not specified a \'writestr\' argument: %s", strerror(err));
     exit(1);
   }
   if(argc > 3) {
     printf("You need only two arguments but you gave: %s %s %s %s\n", argv[1], argv[2], argv[3], strerror(err));
-    syslog(LOG_ERR, "You need only two arguments but you gave: %s %s %s %s\n", argv[1], argv[2], argv[3], strerror(err));
+    //syslog(LOG_ERR, "You need only two arguments but you gave: %s %s %s %s\n", argv[1], argv[2], argv[3], strerror(err));
     exit(1);
   }
 
