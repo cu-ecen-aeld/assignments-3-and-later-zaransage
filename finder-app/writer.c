@@ -42,9 +42,9 @@ int file_create(char *file, char *message){
     exit(1);
   } 
 
-    buf = message;
-    nr = write(fd, buf, strlen(buf));
-    syslog(LOG_DEBUG, "Writing %s to %s: %s", message, file, strerror(err));
+  buf = message;
+  nr = write(fd, buf, strlen(buf));
+  syslog(LOG_DEBUG, "Writing %s to %s: %s", message, file, strerror(err));
 }
 
 
