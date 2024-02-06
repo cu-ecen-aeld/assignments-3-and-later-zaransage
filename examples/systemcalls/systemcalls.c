@@ -67,6 +67,29 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    int status;
+    pid_t pid;
+
+    pid = fork();
+    if (pid == -1){
+        return -1;
+    } else if (pid == 0){
+        const char *argv[count];
+
+        argv[0] = "sh";
+        execv("/usr/bin/sh", argv);
+
+        exit(-1);
+    }
+
+    if (waitpid (pid, &status, 0) == -1){
+        return -1;
+    } else if (WIFEXITED (status)){
+        return WEXITSTATUS (status);
+    }
+    
+    return -1;
+
 
     va_end(args);
 
