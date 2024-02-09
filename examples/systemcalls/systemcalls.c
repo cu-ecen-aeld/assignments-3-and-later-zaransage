@@ -62,7 +62,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    //command[count] = command[count];
 
 /*
  * TODO:
@@ -123,6 +123,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    // int fd = open("redirected.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644);
+
+
+
 
     va_end(args);
 
