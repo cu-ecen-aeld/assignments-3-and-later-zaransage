@@ -1,5 +1,11 @@
 #include "systemcalls.h"
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+
 
 /**
  * @param cmd the command to execute with system()
@@ -74,23 +80,16 @@ bool do_exec(int count, ...)
     if (pid == -1){
         return -1;
     } else if (pid == 0){
-        const char *argv[count];
-
-        argv[0] = "sh";
-        execv("/usr/bin/sh", argv);
-
-        exit(-1);
+        execv(command[0], command);
+        return 0;
     }
 
-    if (waitpid (pid, &status, 0) == -1){
+    if (wait(&status) == -1){
         return -1;
     } else if (WIFEXITED (status)){
         return WEXITSTATUS (status);
     }
     
-    return -1;
-
-
     va_end(args);
 
     return true;

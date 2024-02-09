@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/fs.h>
+#include <sys/wait.h>
+
 
 
 int my_system(const char *cmd){
@@ -16,13 +18,8 @@ int my_system(const char *cmd){
         perror("fork");
         return -1;
     } else if (pid == 0){
-        const char *argv[4];
-        argv[0] = "sh";
-        argv[1] = "-c";
-        argv[2] = cmd;
-        argv[3] = NULL;
-        execv('/bin/sh', argv);
-
+        char *argv[] = {"/bin/ls", "/tmp/", NULL};
+        execv(argv[0], argv);
         exit (-1);
     }
 
@@ -37,10 +34,29 @@ int my_system(const char *cmd){
 }
 
 
-int main(int argc, char *argv[]){
+int main(){
 
-    const char *cmd = "/bin/ls";
+    int status;
+    pid_t pid;
 
-    my_system(cmd);
+    pid = fork();
+    if (pid == -1){
+        perror("fork");
+        return -1;
+    } else if (pid == 0){
+        char *argv[] = {"/bin/ls", "/tmp/", NULL};
+        execv(argv[0], argv);
+        exit (-1);
+    }
+
+    if (wait(&status) == -1){
+        return -1;
+    }else if (WIFEXITED (status)){
+        return WEXITSTATUS (status);
+    }
+    
+    return -1;
+
+
 
 }
