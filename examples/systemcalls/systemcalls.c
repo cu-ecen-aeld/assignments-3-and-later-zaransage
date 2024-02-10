@@ -1,4 +1,6 @@
 #include "systemcalls.h"
+#include <stdio.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -80,10 +82,17 @@ bool do_exec(int count, ...)
     if (pid == -1){
         return -1;
     } else if (pid == 0){
-        execv(command[0], command);
-        return 0;
-    }
+        const char *argv[4];
 
+        argv[0] = "sh";
+        argv[1] = "-c";
+        argv[2] = (char *)command;
+        argv[3] = NULL;
+
+        execv(command[0], (char *const *)argv);
+        exit (-1);
+    }
+    
     if (wait(&status) == -1){
         return -1;
     } else if (WIFEXITED (status)){
@@ -123,12 +132,40 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
-    // int fd = open("redirected.txt", O_WRONLY|O_TRUNC|O_CREAT, 0644);
 
+    int status;
+    pid_t pid;
 
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) { perror("open"); abort(); }
 
+    pid = fork();
+    if (pid == -1){
+        return -1;
+    } else if (pid == 0){
+        if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
+            close(fd);
+            
+            const char *argv[4];
+
+            argv[0] = "sh";
+            argv[1] = "-c";
+            argv[2] = (char *)command;
+            argv[3] = NULL;
+    
+            execv(command[0], (char *const *)argv);
+            exit (-1);
+    }
+
+    if (wait(&status) == -1){
+        return -1;
+    } else if (WIFEXITED (status)){
+        return WEXITSTATUS (status);
+    }
+
+    close(fd);
 
     va_end(args);
-
+    
     return true;
 }
