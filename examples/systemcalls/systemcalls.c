@@ -64,7 +64,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    //command[count] = command[count];
+    command[count] = command[count];
 
 /*
  * TODO:
@@ -82,15 +82,8 @@ bool do_exec(int count, ...)
     if (pid == -1){
         return -1;
     } else if (pid == 0){
-        const char *argv[4];
-
-        argv[0] = "sh";
-        argv[1] = "-c";
-        argv[2] = (char *)command;
-        argv[3] = NULL;
-
-        execv(command[0], (char *const *)argv);
-        exit (-1);
+        execv(command[0], (char *const *)command);
+        exit (0);
     }
     
     if (wait(&status) == -1){
@@ -145,16 +138,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     } else if (pid == 0){
         if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
             close(fd);
-            
-            const char *argv[4];
-
-            argv[0] = "sh";
-            argv[1] = "-c";
-            argv[2] = (char *)command;
-            argv[3] = NULL;
-    
-            execv(command[0], (char *const *)argv);
-            exit (-1);
+            int err = execv(command[0], (char *const *)command);
+            if (err != 0){
+                return false;
+            }
     }
 
     if (wait(&status) == -1){
