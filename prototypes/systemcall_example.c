@@ -37,7 +37,7 @@ int my_system(const char *cmd)
 
 int main(){
 
-    const char *command = "ls /tmp/";
+    const char *command = "/usr/bin/test -f echo";
 
     my_system(command);
 

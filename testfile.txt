@@ -1,1 +1,1 @@
-home is /home/dmarble
+home is $HOME

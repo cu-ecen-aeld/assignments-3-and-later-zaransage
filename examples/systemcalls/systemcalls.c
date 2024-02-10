@@ -79,23 +79,26 @@ bool do_exec(int count, ...)
 
     pid = fork();
     if (pid == -1){
-        return -1;
+        return false;
     } else if (pid == 0){
         status = execv(command[0], (char *const *)command);
         if (status == -1){
             perror("execv");
             exit (EXIT_FAILURE);
         }
+    } else {
+        wait(&status);
     }
     
-    if (wait(&status) == -1){
-        return -1;
-    } else if (WIFEXITED (status)){
-        return WEXITSTATUS (status);
+    if (WIFEXITED (status)){
+        if (WEXITSTATUS (status)){
+            return false;
+        }
+    } else { // I have https://github.com/cu-ecen-aeld/assignments-3-and-later-ishassharmaa to thank for this last else statement.
+        return false;
     }
-    
-    va_end(args);
 
+    va_end(args);
     return true;
 }
 
@@ -127,7 +130,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
-
     int status;
     pid_t pid;
 
@@ -136,11 +138,11 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 
     pid = fork();
     if (pid == -1){
-        return -1;
+        return false;
     } else if (pid == 0){
         if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
             close(fd);
-            status = execv(command[0], (char *const *)command); // I don't like this casting but for some reason it's needed.
+            status = execv(command[0], command); // I don't like this casting but for some reason it's needed.
             if (status != 0){
                 perror("execv");
                 exit (EXIT_FAILURE);
@@ -148,14 +150,12 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     }
 
     if (wait(&status) == -1){
-        return -1;
+        return false;
     } else if (WIFEXITED (status)){
         return WEXITSTATUS (status);
     }
 
     close(fd);
-
-    va_end(args);
-    
+    va_end(args);    
     return true;
 }
