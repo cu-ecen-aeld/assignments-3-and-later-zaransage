@@ -8,7 +8,6 @@
 #include <sys/wait.h>
 
 
-
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
@@ -82,8 +81,11 @@ bool do_exec(int count, ...)
     if (pid == -1){
         return -1;
     } else if (pid == 0){
-        execv(command[0], (char *const *)command);
-        exit (0);
+        status = execv(command[0], (char *const *)command);
+        if (status == -1){
+            perror("execv");
+            exit (EXIT_FAILURE);
+        }
     }
     
     if (wait(&status) == -1){
@@ -138,9 +140,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     } else if (pid == 0){
         if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
             close(fd);
-            int err = execv(command[0], (char *const *)command);
-            if (err != 0){
-                return false;
+            status = execv(command[0], (char *const *)command); // I don't like this casting but for some reason it's needed.
+            if (status != 0){
+                perror("execv");
+                exit (EXIT_FAILURE);
             }
     }
 
