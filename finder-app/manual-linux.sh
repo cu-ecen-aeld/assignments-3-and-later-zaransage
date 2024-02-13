@@ -48,6 +48,11 @@ then
 fi
 
 # TODO: Create necessary base directories
+# May need to change directory first or point to rootfs
+mkdir -p bin dev etc home lib lib64 proc sbon sys tmp usr var
+mkdir -p usr/bin usr/lib usr/sbin
+mkdir -p var/log 
+
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
@@ -56,6 +61,11 @@ git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
+    make distclean
+    make defconfig
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
+    make CONFIG_PREFIX=/path/to/rootdir
+    ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}install
 else
     cd busybox
 fi
@@ -67,14 +77,26 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
+# Copy from the cross compile location to lib or lib64
 
 # TODO: Make device nodes
+mknod -m 666 dev/null c 1 3
+mknod -m 666 console c 5 1
 
 # TODO: Clean and build the writer utility
+
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
 
+# /bin/cp finder.sh finder-test.sh ../conf/assignments.txt ../conf/username.txt ${OUTDIR}/rootfs/home/
+
 # TODO: Chown the root directory
 
+#find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
+
 # TODO: Create initramfs.cpio.gz
+
+#gzip -f ${OUTDIR}/initramfs.cpio.gz ${OUTDIR}/initramfs.cpio
+
+
