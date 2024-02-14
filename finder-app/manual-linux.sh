@@ -35,11 +35,12 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     git checkout ${KERNEL_VERSION}
     # TODO: Add your kernel build steps here
 
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gnumrproper
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gnudefconfig
-    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gnuall
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gnumodules
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}dtbs
+    #make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc defconfig
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc mrproper
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc defconfig
+    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc all
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc modules
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc dtbs
 
 fi
 
@@ -102,10 +103,10 @@ mknod -m 666 console c 5 1
 
 # TODO: Chown the root directory
 
-#find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
+find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 
 # TODO: Create initramfs.cpio.gz
 
-#gzip -f ${OUTDIR}/initramfs.cpio.gz ${OUTDIR}/initramfs.cpio
+gzip -f ${OUTDIR}/initramfs.cpio.gz ${OUTDIR}/initramfs.cpio
 
 
