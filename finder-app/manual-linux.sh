@@ -36,11 +36,11 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     # TODO: Add your kernel build steps here
 
     #make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc defconfig
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc mrproper
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc defconfig
-    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc all
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc modules
-    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}gcc dtbs
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
+    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 
 fi
 
@@ -89,24 +89,31 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 # TODO: Add library dependencies to rootfs
 # Copy from the cross compile location to lib or lib64
 
+
+
 # TODO: Make device nodes
 mknod -m 666 dev/null c 1 3
 mknod -m 666 console c 5 1
 
 # TODO: Clean and build the writer utility
 
+make clean -f Makefile
+make CROSS_COMPILE -f Makefile
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
 
-# /bin/cp finder.sh finder-test.sh ../conf/assignments.txt ../conf/username.txt ${OUTDIR}/rootfs/home/
+/bin/cp writer finder.sh finder-test.sh ../conf/assignments.txt ../conf/username.txt ${OUTDIR}/rootfs/home/
 
 # TODO: Chown the root directory
-
+cd ${OUTDIR}/rootfs/
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
+cd ..
 
 # TODO: Create initramfs.cpio.gz
 
-gzip -f ${OUTDIR}/initramfs.cpio.gz ${OUTDIR}/initramfs.cpio
+gzip initramfs.cpio.gz
+
+mkimage -A arm -O linux -T ramdisk -d initramfs.cpio.gz uRamdisk
 
 
