@@ -45,6 +45,9 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
 fi
 
 echo "Adding the Image in outdir"
+mkdir -p ${OUTDIR}/rootfs
+cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/Image
+
 
 echo "Creating the staging directory for the root filesystem"
 cd "$OUTDIR"
@@ -52,6 +55,7 @@ if [ -d "${OUTDIR}/rootfs" ]
 then
 	echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
     sudo rm  -rf ${OUTDIR}/rootfs
+    mkdir -p ${OUTDIR}/rootfs
 fi
 
 # TODO: Create necessary base directories
@@ -70,7 +74,7 @@ git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
-    make distclean
+    #make distclean
     make defconfig
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
     make CONFIG_PREFIX=${OUTDIR}/rootfs
@@ -83,8 +87,8 @@ fi
 make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
+${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter" > /tmp/busybox.interp.txt
+${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library" > /tmp/busybox.lib.txt
 
 # TODO: Add library dependencies to rootfs
 # Copy from the cross compile location to lib or lib64
@@ -97,8 +101,8 @@ mknod -m 666 console c 5 1
 
 # TODO: Clean and build the writer utility
 
-make clean -f Makefile
-make CROSS_COMPILE -f Makefile
+#make clean -f Makefile
+#make CROSS_COMPILE -f Makefile
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
@@ -108,12 +112,10 @@ make CROSS_COMPILE -f Makefile
 # TODO: Chown the root directory
 cd ${OUTDIR}/rootfs/
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
-cd ..
+cd ${OUTDIR}
 
 # TODO: Create initramfs.cpio.gz
+gzip -f ${OUTDIR}/initramfs.cpio
+cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/Image
 
-gzip initramfs.cpio.gz
-
-mkimage -A arm -O linux -T ramdisk -d initramfs.cpio.gz uRamdisk
-
-
+#mkimage -A arm -O linux -T ramdisk -d initramfs.cpio.gz uRamdisk
