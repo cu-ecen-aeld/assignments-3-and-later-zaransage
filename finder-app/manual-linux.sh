@@ -84,20 +84,27 @@ fi
 
 # TODO: Make and install busybox
 
-make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}install
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} #install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter" > /tmp/busybox.interp.txt
-${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library" > /tmp/busybox.lib.txt
+${CROSS_COMPILE}readelf -a ${OUTDIR}/busybox/busybox | grep "program interpreter" 
+${CROSS_COMPILE}readelf -a ${OUTDIR}/busybox/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
 # Copy from the cross compile location to lib or lib64
+# Probably someone smarter than I am could make this cleaner.
 
-
+SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
+/usr/bin/cp -va $(echo ${SYSROOT}/lib64/libm.so.6) ${OUTDIR}/rootfs/lib64
+/usr/bin/cp -va $(echo ${SYSROOT}/lib64/libresolv.so.2) ${OUTDIR}/rootfs/lib64
+/usr/bin/cp -va $(echo ${SYSROOT}/lib64/libc.so.6) ${OUTDIR}/rootfs/lib64
+/usr/bin/cp -va $(echo ${SYSROOT}/lib64/ld-2.31.so) ${OUTDIR}/rootfs/lib64
+/usr/bin/ln -s $(echo ${SYSROOT}/lib64/ld-2.31.so) ${OUTDIR}/rootfs/lib64/ld-linux-x86-64.so.2
+/usr/bin/ln -s ${OUTDIR}/rootfs/bin/busybox ${OUTDIR}/rootfs/bin/bash
 
 # TODO: Make device nodes
-mknod -m 666 dev/null c 1 3
-mknod -m 666 console c 5 1
+mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
+mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
 
 # TODO: Clean and build the writer utility
 
@@ -119,3 +126,5 @@ gzip -f ${OUTDIR}/initramfs.cpio
 cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/Image
 
 #mkimage -A arm -O linux -T ramdisk -d initramfs.cpio.gz uRamdisk
+
+
