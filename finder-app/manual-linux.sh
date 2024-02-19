@@ -13,8 +13,6 @@ FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
 
-MY_FILES=/home/dmarble/git/assignments-3-and-later-zaransage/finder-app/
-
 if [ $# -lt 1 ]
 then
 	echo "Using default directory ${OUTDIR} for output"
@@ -108,14 +106,14 @@ sudo mknod ${OUTDIR}/rootfs/dev/ram0 b 1 0
 
 # TODO: Clean and build the writer utility
 
-rm -rf ${MY_FILES}*.o ${MY_FILES}*.elf ${MY_FILES}*.bin ${MY_FILES}*.s
-${CROSS_COMPILE}gcc ${MY_FILES}writer.c -o ${MY_FILES}writer
+rm -rf ${FINDER_APP_DIR}/*.o ${FINDER_APP_DIR}/*.elf ${FINDER_APP_DIR}/*.bin ${FINDER_APP_DIR}/*.s
+${CROSS_COMPILE}gcc ${FINDER_APP_DIR}/writer.c -o ${FINDER_APP_DIR}/writer
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
 
 mkdir -p ${OUTDIR}/rootfs/etc/rc0.d
-/usr/bin/cp -a ${MY_FILES}S0links.sh ${OUTDIR}/rootfs/etc/rc0.d/
+/usr/bin/cp -a ${FINDER_APP_DIR}/S0links.sh ${OUTDIR}/rootfs/etc/rc0.d/
 chmod +x ${OUTDIR}/rootfs/etc/rc0.d/S0links.sh
 
 /bin/cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
