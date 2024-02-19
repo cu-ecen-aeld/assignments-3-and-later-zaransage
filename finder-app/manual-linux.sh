@@ -121,7 +121,7 @@ chmod +x ${OUTDIR}/rootfs/etc/rc0.d/S0links.sh
 /bin/cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
 
 /bin/cp ${FINDER_APP_DIR}/finder_bb.sh ${OUTDIR}/rootfs/home/finder.sh
-chmod +x ${OUTDIR}/rootfs/etc/home/finder.sh
+chmod +x ${OUTDIR}/rootfs/home/finder.sh
 
 /bin/cp ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home/
 /bin/cp ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home/
