@@ -65,7 +65,8 @@ fi
 cd ${OUTDIR}/rootfs/
 mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin
-mkdir -p var/log 
+mkdir -p var/log
+
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
@@ -77,7 +78,7 @@ git clone git://busybox.net/busybox.git
     make distclean
     make ARCH=${ARCH} defconfig
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
-    make ARCH=${ARCH} CONFIG_PREFIX=${OUTDIR}/rootfs
+    make ARCH=${ARCH} CONFIG_PREFIX=${OUTDIR}/rootfs/bin
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 else
     cd busybox
@@ -102,6 +103,7 @@ cd ${OUTDIR}/rootfs/bin
 ln -sf busybox sh
 ln -sf busybox ash
 
+
 # TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
@@ -115,9 +117,14 @@ ${CROSS_COMPILE}gcc ${MY_FILES}writer.c -o ${MY_FILES}writer
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
 
+mkdir -p ${OUTDIR}/rootfs/etc/rc0.d
+/usr/bin/cp -a ${MY_FILES}S0links.sh ${OUTDIR}/rootfs/etc/rc0.d/
+chmod +x ${OUTDIR}/rootfs/etc/rc0.d/S0links.sh
+
 /bin/cp ${MY_FILES}writer ${OUTDIR}/rootfs/home/
 /bin/cp ${MY_FILES}finder.sh ${OUTDIR}/rootfs/home/
 /bin/cp ${MY_FILES}finder-test.sh ${OUTDIR}/rootfs/home/
+/bin/cp ${MY_FILES}autorun-qemu.sh ${OUTDIR}/rootfs/home/
 #/bin/cp ${MY_FILES}../conf/* ${OUTDIR}/rootfs/home/
 
 # TODO: Chown the root directory
