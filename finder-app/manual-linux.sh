@@ -67,7 +67,6 @@ mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin
 mkdir -p var/log
 
-
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
@@ -83,7 +82,6 @@ git clone git://busybox.net/busybox.git
 else
     cd busybox
 fi
-
 
 echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a ${OUTDIR}/busybox/busybox | grep "program interpreter" 
@@ -103,7 +101,6 @@ cd ${OUTDIR}/rootfs/bin
 ln -sf busybox sh
 ln -sf busybox ash
 
-
 # TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/console c 5 1
@@ -111,7 +108,7 @@ sudo mknod ${OUTDIR}/rootfs/dev/ram0 b 1 0
 
 # TODO: Clean and build the writer utility
 
-#rm -rf ${MY_FILES}*.o ${MY_FILES}*.elf ${MY_FILES}*.bin ${MY_FILES}*.s
+rm -rf ${MY_FILES}*.o ${MY_FILES}*.elf ${MY_FILES}*.bin ${MY_FILES}*.s
 ${CROSS_COMPILE}gcc ${MY_FILES}writer.c -o ${MY_FILES}writer
 
 # TODO: Copy the finder related scripts and executables to the /home directory
@@ -121,11 +118,16 @@ mkdir -p ${OUTDIR}/rootfs/etc/rc0.d
 /usr/bin/cp -a ${MY_FILES}S0links.sh ${OUTDIR}/rootfs/etc/rc0.d/
 chmod +x ${OUTDIR}/rootfs/etc/rc0.d/S0links.sh
 
-/bin/cp ${MY_FILES}writer ${OUTDIR}/rootfs/home/
-/bin/cp ${MY_FILES}finder.sh ${OUTDIR}/rootfs/home/
-/bin/cp ${MY_FILES}finder-test.sh ${OUTDIR}/rootfs/home/
-/bin/cp ${MY_FILES}autorun-qemu.sh ${OUTDIR}/rootfs/home/
-#/bin/cp ${MY_FILES}../conf/* ${OUTDIR}/rootfs/home/
+/bin/cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
+
+/bin/cp ${FINDER_APP_DIR}/finder_bb.sh ${OUTDIR}/rootfs/home/finder.sh
+chmod +x ${OUTDIR}/rootfs/etc/home/finder.sh
+
+/bin/cp ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home/
+/bin/cp ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home/
+
+mkdir -p ${OUTDIR}/rootfs/home/conf/
+/bin/cp ${FINDER_APP_DIR}/../conf/* ${OUTDIR}/rootfs/home/conf/
 
 # TODO: Chown the root directory
 cd ${OUTDIR}/rootfs/
