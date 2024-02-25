@@ -15,14 +15,18 @@ void* threadfunc(void* thread_param)
     // hint: use a cast like the one below to obtain thread arguments from your parameter
     //struct thread_data* thread_func_args = (struct thread_data *) thread_param;
 
-    pthread_cond_wait(&thread_param);
+    struct thread_data* thread_func_args = (struct thread_data *) thread_param;
+
+    pthread_cond_wait(thread_func_args->wait_to_obtain_ms,thread_func_args->mutex);
 
 
-    pthread_mutex_lock(&thread_param);
+    pthread_mutex_lock(thread_func_args->mutex);
 
 
+    pthread_cond_wait(thread_func_args->wait_to_release_ms,thread_func_args->mutex);
 
-    pthread_mutex_unlock(&thread_param);
+
+    pthread_mutex_unlock(&thread_func_args->mutex);
 
     
 
