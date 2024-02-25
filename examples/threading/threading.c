@@ -17,7 +17,7 @@ void* threadfunc(void* thread_param)
 
     struct thread_data* thread_func_args = (struct thread_data *) thread_param;
 
-    pthread_cond_wait(thread_func_args->wait_to_obtain_ms,thread_func_args->mutex);
+    pthread_cond_wait(&thread_func_args->wait_to_obtain_ms,&thread_func_args->mutex);
 
 
     pthread_mutex_lock(thread_func_args->mutex);
@@ -45,8 +45,25 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
      * See implementation details in threading.h file comment block
      */
 
+    int stack_size;
+    int s;
+
+    pthread_mutex_init(&mutex, NULL);
+
+    pthread_create(&thread, NULL, threadfunc, NULL);
+    
+    s = pthread_create(&tinfo[tnum].thread_id, &attr, &thread_start, &tinfo[tnum]);
+        if (s != 0)
+            handle_error_en(s, "pthread_create");
+
+    s = pthread_join(thread, NULL);
+
+    s = pthread_attr_destroy(&attr);
+           if (s != 0)
+            handle_error_en(s, "pthread_attr_destroy");
 
 
+    s = pthread_mutex_destroy(&mutex);
 
 
     return false;
