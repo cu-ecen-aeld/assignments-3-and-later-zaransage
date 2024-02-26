@@ -26,6 +26,8 @@ void* threadfunc(void* thread_param)
 
     pthread_mutex_unlock(&thread_func_args->mutex);
 
+    // I likely need to set a conditional here
+
     thread_func_args->thread_complete_success = true;
 
     return thread_param;
@@ -44,6 +46,8 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
      */
 
     int s;
+
+    // I will try a dynamic memory approach from the book
 
     struct thread_data my_thread_data =
     {
