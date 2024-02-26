@@ -26,6 +26,8 @@ void* threadfunc(void* thread_param)
 
     pthread_mutex_unlock(&thread_func_args->mutex);
 
+    thread_func_args->thread_complete_success = true;
+
     return thread_param;
 }
 
@@ -49,7 +51,6 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
         *mutex,
         wait_to_obtain_ms,
         wait_to_release_ms,
-        true,
     };
     
     s = pthread_mutex_init(&my_thread_data.mutex, NULL);
@@ -59,6 +60,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
     s = pthread_create(&my_thread_data.thread, NULL, threadfunc, &my_thread_data);
         if (s != 0)
             return false;
+            
     
     pthread_join(my_thread_data.thread, NULL);
 
