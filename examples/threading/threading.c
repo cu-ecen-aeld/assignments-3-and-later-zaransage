@@ -16,26 +16,32 @@ void* threadfunc(void* thread_param)
     // hint: use a cast like the one below to obtain thread arguments from your parameter
     //struct thread_data* thread_func_args = (struct thread_data *) thread_param;
 
-    struct thread_data* thread_func_args = (struct thread_data *) thread_param;
+    struct thread_data *thread_func_args = (struct thread_data *) thread_param;
 
     int s;
 
-    usleep(thread_func_args->wait_to_obtain_ms * 1000);
+    s = usleep(thread_func_args->wait_to_obtain_ms * 1000);
+    if (s !=0){
+        thread_func_args->thread_complete_success = false;
+    }
 
-    s = pthread_mutex_lock(&thread_func_args->mutex);
+    s = pthread_mutex_lock(thread_func_args->mutex);
     if (s != 0) {
         thread_func_args->thread_complete_success = false;
         return false;
     }
 
-    usleep(thread_func_args->wait_to_release_ms * 1000);
+    s = usleep(thread_func_args->wait_to_release_ms * 1000);
+    if (s !=0){
+        thread_func_args->thread_complete_success = false;
+    }
 
-    s = pthread_mutex_unlock(&thread_func_args->mutex);
+    s = pthread_mutex_unlock(thread_func_args->mutex);
     if (s != 0){
         thread_func_args->thread_complete_success = false;
-    } else {
-        thread_func_args->thread_complete_success = true;
-    }
+    } 
+        
+    thread_func_args->thread_complete_success = true; // a thank you to https://github.com/cu-ecen-aeld/assignments-3-and-later-Suhas-Reddy-S/tree/master
 
     return thread_param;
 }
@@ -62,32 +68,25 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
         return false;
     }
 
-    my_thread_data->thread = 0;
-    my_thread_data->mutex = *mutex;
+    // Thank you to https://github.com/cu-ecen-aeld/assignments-3-and-later-Suhas-Reddy-S/tree/master
+    // For the example to help me clean this section up.
+
+    my_thread_data->mutex = mutex;
     my_thread_data->wait_to_obtain_ms = wait_to_obtain_ms;
     my_thread_data->wait_to_release_ms = wait_to_release_ms;
     my_thread_data->thread_complete_success = false;
 
-    //s = pthread_mutex_init(&mutex, NULL);
-    //if (s != 0)
-    //    return false;
-
-    s = pthread_create(thread, NULL, threadfunc, my_thread_data);
+ 
+    s = pthread_create(thread, NULL, (void *)threadfunc, my_thread_data);
     if (s != 0){
         free(my_thread_data);
         return false;
     }
 
-            
-    //s = pthread_join(thread, NULL);
-    //if (s != 0)
-    //    return false;
+    if (my_thread_data->thread_complete_success == true){
+        free(my_thread_data);
+    }
 
-    //s = pthread_mutex_destroy(&mutex);
-    //if (s != 0)
-    //    return false;
-
-
-    return false; // I have mixed opinions here. It starts off as false but the book says true...
+    return true;
 }
 

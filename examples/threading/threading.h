@@ -13,10 +13,12 @@ struct thread_data{
      * into this structure, use this structure to communicate
      * between the start_thread_obtaining_mutex function and
      * your thread implementation.
+     * Special thank you to:
+     * https://github.com/cu-ecen-aeld/assignments-3-and-later-Suhas-Reddy-S/tree/master
+     * I was killing myself with where I specified the *mutex, so thank you.
      */
 
-    pthread_t thread;
-    pthread_mutex_t mutex;
+    pthread_mutex_t *mutex;
     int wait_to_obtain_ms;
     int wait_to_release_ms;
 
