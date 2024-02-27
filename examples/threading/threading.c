@@ -18,17 +18,19 @@ void* threadfunc(void* thread_param)
 
     struct thread_data* thread_func_args = (struct thread_data *) thread_param;
 
+    int s;
+
     usleep(thread_func_args->wait_to_obtain_ms * 1000);
 
-    int s = pthread_mutex_lock(&thread_func_args->mutex);
-    if (s != 0)
+    s = pthread_mutex_lock(&thread_func_args->mutex);
+    if (s != 0) {
         thread_func_args->thread_complete_success = false;
         return false;
-
+    }
 
     usleep(thread_func_args->wait_to_release_ms * 1000);
 
-    int s = pthread_mutex_unlock(&thread_func_args->mutex);
+    s = pthread_mutex_unlock(&thread_func_args->mutex);
     if (s != 0){
         thread_func_args->thread_complete_success = false;
     } else {
@@ -54,26 +56,23 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
 
     // I will try a dynamic memory approach from the book
 
-    struct thread_data my_thread_data =
-    {
-        *thread,
-        *mutex,
-        wait_to_obtain_ms,
-        wait_to_release_ms,
-    };
-    
+    struct thread_data *my_thread_data = (struct thread_data *) calloc(0, sizeof(my_thread_data));
+     
     s = pthread_mutex_init(&my_thread_data.mutex, NULL);
-        if (s != 0)
-            return false;
+    if (s != 0)
+        return false;
 
     s = pthread_create(&my_thread_data.thread, NULL, threadfunc, &my_thread_data);
-        if (s != 0)
-            return false;
+    if (s != 0)
+        return false;
             
-    
-    pthread_join(my_thread_data.thread, NULL);
+    s = pthread_join(my_thread_data.thread, NULL);
+    if (s != 0)
+        return false;
 
-    pthread_mutex_destroy(&my_thread_data.mutex);
+    s = pthread_mutex_destroy(&my_thread_data.mutex);
+    if (s != 0)
+        return false;
 
 
     return false;
