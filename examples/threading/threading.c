@@ -57,24 +57,37 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex, int
     // I will try a dynamic memory approach from the book
 
     struct thread_data *my_thread_data = (struct thread_data *) calloc(0, sizeof(my_thread_data));
-     
-    s = pthread_mutex_init(&my_thread_data.mutex, NULL);
-    if (s != 0)
-        return false;
 
-    s = pthread_create(&my_thread_data.thread, NULL, threadfunc, &my_thread_data);
-    if (s != 0)
+    if (my_thread_data == NULL){
         return false;
+    }
+
+    my_thread_data->thread = 0;
+    my_thread_data->mutex = *mutex;
+    my_thread_data->wait_to_obtain_ms = wait_to_obtain_ms;
+    my_thread_data->wait_to_release_ms = wait_to_release_ms;
+    my_thread_data->thread_complete_success = false;
+
+    //s = pthread_mutex_init(&mutex, NULL);
+    //if (s != 0)
+    //    return false;
+
+    s = pthread_create(thread, NULL, threadfunc, my_thread_data);
+    if (s != 0){
+        free(my_thread_data);
+        return false;
+    }
+
             
-    s = pthread_join(my_thread_data.thread, NULL);
-    if (s != 0)
-        return false;
+    //s = pthread_join(thread, NULL);
+    //if (s != 0)
+    //    return false;
 
-    s = pthread_mutex_destroy(&my_thread_data.mutex);
-    if (s != 0)
-        return false;
+    //s = pthread_mutex_destroy(&mutex);
+    //if (s != 0)
+    //    return false;
 
 
-    return false;
+    return false; // I have mixed opinions here. It starts off as false but the book says true...
 }
 
