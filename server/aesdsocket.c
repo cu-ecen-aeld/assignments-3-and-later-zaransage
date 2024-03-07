@@ -8,8 +8,12 @@
 #include <errno.h>
 #include <syslog.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <netdb.h>
+#include <sys/wait.h>
 
-#define PORT 9000
+#define PORT "9000"
+#define FILEPATH "/var/tmp/aesdsocketdata"
 
 
 
@@ -17,7 +21,7 @@
 int main( int argc, char *argv[]){
 
   int sockfd, new_fd;
-  struct addrinfo ai, *serverinfo;
+  struct addrinfo hints, *serverinfo, *p;
   struct SOCKADDR *ai_addr;
   struct sockaddr_storage connect_addr;
   socklen_t sin_size;
@@ -26,21 +30,29 @@ int main( int argc, char *argv[]){
   int rv;
   char s[INET6_ADDRSTRLEN];
 
-  FILE *fp = fopen("/var/tmp/aesdsocketdata", "w");
+  FILE *fp = fopen(FILEPATH, "w");
 
   openlog(NULL,0,LOG_USER);
 
-  memset(&ai, 0, sizeof ai);
+  memset(&hints, 0, sizeof hints);
 
-  if ((rv = getaddrinfo(NULL, PORT, &ai, &serverinfo)) != 0){
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
+
+  if ((rv = getaddrinfo(NULL, PORT, &hints, &serverinfo)) != 0){
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
     return 1;
   }
 
-  if ((sockfd = socket(AF_UNSPEC, SOCK_STREAM, AI_PASSIVE)) == -1){
+  // Everything I read says I am missing a loop here.
+
+for (p = serverinfo; p != NULL; p = p->ai_next){
+
+  if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1){
     perror("Unable to open socket");
     syslog(LOG_ERR,"Unable to open socket");
-    return 1;
+     continue;
   }
 
   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1){
@@ -49,17 +61,33 @@ int main( int argc, char *argv[]){
     return 1;
   }
 
-  if (bind(sockfd, ai_addr, sizeof(ai_addr)) == -1 {
+  if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
     close(sockfd);
     perror("Unable to bind socket");
     syslog(LOG_ERR,"Unable to bind socket");
-    return 1;
-  });
-
+    continue;
+  };
+    break;
+  }
 
   freeaddrinfo(serverinfo);
 
-  // I think my handling of the flags needs to change
+  /*Heavily borrowed from beej.us*/
+
+  if (p == NULL){
+    fprintf(stderr, "failed to bind");
+    perror("Unable to bind socket");
+    syslog(LOG_ERR,"Unable to bind socket");
+    return 1;
+
+  }
+
+  if (listen(sockfd, 10) == -1){
+    fprintf(stderr, "failed to bind");
+    perror("Unable to bind socket");
+    syslog(LOG_ERR,"Unable to bind socket");
+    return 1;
+  }
 
   while(1){
     sin_size = sizeof connect_addr;
@@ -72,9 +100,13 @@ int main( int argc, char *argv[]){
         continue;
     }
 
-    inet_ntop(connect_addr.ss_family, get_in_addr((struct sockaddr *) &connect_addr), s, sizeof s);
-    printf("Accepted connection from %s\n",s);
-    syslog(LOG_INFO,"Accepted connection from %s\n",s);
+    if (connect_addr.ss_family == AF_INET){
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *) &connect_addr;
+        inet_ntop(AF_INET, &(ipv4->sin_addr), s, sizeof s);
+
+        printf("Accepted connection from %s\n",s);
+        syslog(LOG_INFO,"Accepted connection from %s\n",s);
+    }
 
     if (!fork()){
         close(sockfd);
@@ -84,10 +116,16 @@ int main( int argc, char *argv[]){
         close(new_fd);
         perror("Unable to send data to socket");
         syslog(LOG_ERR,"Unable to send data to socket");
-
+        return 0;
     }
+
+    close(sockfd);
+    syslog(LOG_INFO, "Closed connection from %s\n" ,s);
 
   }
 
+    close(sockfd);
+    remove(FILEPATH);
+    closelog();
     return 0;
 }
