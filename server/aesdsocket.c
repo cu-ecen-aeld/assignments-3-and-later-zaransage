@@ -25,6 +25,7 @@ int main(int argc, char *argv[]){
     int yes = 1;
     int rv;
 
+    FILE *fp = fopen(FILEPATH, "w");
     openlog(NULL, 0, LOG_USER);
 
     memset(&hints, 0, sizeof hints);
@@ -92,10 +93,22 @@ int main(int argc, char *argv[]){
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
         if (!fork()){ 
-            close(sockfd); 
+            close(sockfd);
+
+            char buffer[1024];
+            int number_of_bytes;
 
             if (send(new_fd, "connection accepted", strlen("connection accepted") + 1, 0) == -1){
                 perror("send");
+            }
+
+            while ((number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0)) > 0){
+                buffer[number_of_bytes] = '\n';
+                fprintf(fp, "%s", buffer);
+            }
+
+            if (number_of_bytes < 0){
+                perror("Not getting bytes");
             }
 
             close(new_fd);
