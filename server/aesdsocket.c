@@ -64,7 +64,8 @@ int main( int argc, char *argv[]){
   while(1){
     sin_size = sizeof connect_addr;
     new_fd = accept(sockfd, (struct sockaddr *) &connect_addr, &sin_size);
-    if (new_fd == -1){
+
+    if (new_fd < 0){
         perror("Unable to accept socket");
         syslog(LOG_ERR,"Unable to accept socket");
         return 1;
@@ -77,13 +78,16 @@ int main( int argc, char *argv[]){
 
     if (!fork()){
         close(sockfd);
+        if (send(new_fd, "connection accepted", 13, 0) == -1){
+            perror("failed to send");
+        }
+        close(new_fd);
+        perror("Unable to send data to socket");
+        syslog(LOG_ERR,"Unable to send data to socket");
 
     }
 
-
   }
-
-
 
     return 0;
 }
