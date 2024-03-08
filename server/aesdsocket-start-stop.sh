@@ -1,11 +1,17 @@
 #!/bin/sh
 
+PID="/var/run/aesdsocket.pid"
+
 case "$1" in
   start)
   echo "Starting aesdsocket server"
-  /usr/bin/server
+  /usr/bin/aesdsocket -d && echo $! > "${PID}"
   ;;
   stop)
   echo "Stopping aesdsocket server"
-  kill -2 /usr/bin/server
+  if [ -f "${PID}" ]; then kill $(cat ${PID}); rm -f "${PID}"; fi
   ;;
+  *)
+  echo "Call either start or stop"
+  exit 1
+esac
