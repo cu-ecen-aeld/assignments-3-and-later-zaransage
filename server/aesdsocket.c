@@ -11,10 +11,22 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <sys/wait.h>
+#include <stdbool.h>
+
 
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
 
+bool caught_sigint = false;
+bool caught_sigterm = false;
+
+static void signal_handler(int signal_number){
+    if (signal_number == SIGINT){
+        caught_sigint = 1;
+    } else if (signal_number == SIGTERM){
+        caught_sigterm = 1;
+    }
+}
 
 int main(int argc, char *argv[]){
     int sockfd, new_fd;
@@ -25,8 +37,27 @@ int main(int argc, char *argv[]){
     int yes = 1;
     int rv;
 
-    FILE *fp = fopen(FILEPATH, "w");
+    FILE *fp = fopen(FILEPATH, "a");
     openlog(NULL, 0, LOG_USER);
+
+    /* Right from the material example .. lets try it*/
+
+    struct sigaction new_action;
+    bool success = true;
+    
+    memset(&new_action, 0, sizeof(struct sigaction));
+    new_action.sa_handler=signal_handler;
+
+    if(sigaction(SIGTERM, &new_action, NULL) != 0){
+        printf("Error %d (%s) registering for SIGTERM", errno, strerror(errno));
+    }
+
+    if(sigaction(SIGINT, &new_action, NULL)){
+        printf("Error %d (%s) registereing for SIGINT", errno, strerror(errno));
+    }
+
+
+    /*A horrible smattering of beej.us, Linux Systems Programming and some Googling errors*/
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -76,6 +107,9 @@ int main(int argc, char *argv[]){
     }
 
     while (1) {
+        if (caught_sigint || caught_sigterm) {
+            break;
+        }
         sin_size = sizeof connect_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
 
@@ -98,19 +132,28 @@ int main(int argc, char *argv[]){
             char buffer[1024];
             int number_of_bytes;
 
-            if (send(new_fd, "connection accepted", strlen("connection accepted") + 1, 0) == -1){
-                perror("send");
-            }
+            //if (send(new_fd, "connection accepted", strlen("connection accepted") + 1, 0) == -1){
+            //    perror("send");
+            //}
 
             while ((number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0)) > 0){
-                buffer[number_of_bytes] = '\n';
-                fprintf(fp, "%s", buffer);
+                buffer[number_of_bytes] = '\0';
+                fputs(buffer, fp);
+                if (strchr(buffer, '\n')) break;
+            }
+
+            fflush(fp);
+            
+            rewind(fp);
+            while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
+                send(new_fd, buffer, number_of_bytes, 0);
             }
 
             if (number_of_bytes < 0){
                 perror("Not getting bytes");
             }
 
+            fclose(fp);
             close(new_fd);
             exit(0);
         }
@@ -120,7 +163,16 @@ int main(int argc, char *argv[]){
 
    
     close(sockfd);
-    //remove(FILEPATH);
     closelog();
+
+
+    if (caught_sigint) {
+        printf("\nCaught SIGINT, exiting.\n");
+    }
+    if (caught_sigterm) {
+        printf("\nCaught SIGTERM, exiting.\n");
+    }
+
+
     return 0;
 }
