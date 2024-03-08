@@ -1,7 +1,7 @@
 GCC            := "/usr/bin/gcc"
 CROSS_COMPILE  := "aarch64-none-linux-gnu-"
-SOURCE := server.c
-TARGET := server
+SOURCE := aesdsocket.c
+TARGET := aesdsocket
 
 default: 
 	$(GCC) $(SOURCE) -o $(TARGET)
