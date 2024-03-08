@@ -57,6 +57,30 @@ int main(int argc, char *argv[]){
         printf("Error %d (%s) registereing for SIGINT", errno, strerror(errno));
     }
 
+      /*Lets try some of the forking code from class 2*/
+
+    for (int i =1; i < argc; i++){
+        if (strcmp(argv[i], "-d") == 0){
+            run_as_daemon = true;
+            break;
+        }
+    }
+
+    if (run_as_daemon){
+        pid_t pid;
+            pid = fork();
+        if (pid < 0){
+          perror("fork");
+          exit(-1);
+        } else if (pid > 0){
+            setsid();
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+            exit(0); // A thank you to https://github.com/cu-ecen-aeld/assignments-3-and-later-asabbagh4 for this one exit to fix everything.
+        }
+
+    }
 
     /*A horrible smattering of beej.us, Linux Systems Programming and some Googling errors*/
 
@@ -105,30 +129,6 @@ int main(int argc, char *argv[]){
     if (listen(sockfd, 10) == -1){
         perror("listen");
         return 1;
-    }
-
-      /*Lets try some of the forking code from class 2*/
-
-    for (int i =1; i < argc; i++){
-        if (strcmp(argv[i], "-d") == 0){
-            run_as_daemon = true;
-            break;
-        }
-    }
-
-    if (run_as_daemon){
-        pid_t pid;
-            pid = fork();
-        if (pid < 0){
-          perror("fork");
-          exit(-1);
-        } else if (pid > 0){
-            setsid();
-            close(STDIN_FILENO);
-            close(STDOUT_FILENO);
-            close(STDERR_FILENO);
-        }
-
     }
 
     while (1) {
