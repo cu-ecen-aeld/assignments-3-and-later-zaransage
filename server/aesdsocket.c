@@ -19,6 +19,7 @@
 
 bool caught_sigint = false;
 bool caught_sigterm = false;
+bool run_as_daemon = false;
 
 static void signal_handler(int signal_number){
     if (signal_number == SIGINT){
@@ -104,6 +105,30 @@ int main(int argc, char *argv[]){
     if (listen(sockfd, 10) == -1){
         perror("listen");
         return 1;
+    }
+
+      /*Lets try some of the forking code from class 2*/
+
+    for (int i =1; i < argc; i++){
+        if (strcmp(argv[i], "-d") == 0){
+            run_as_daemon = true;
+            break;
+        }
+    }
+
+    if (run_as_daemon){
+        pid_t pid;
+            pid = fork();
+        if (pid < 0){
+          perror("fork");
+          exit(-1);
+        } else if (pid > 0){
+            setsid();
+            close(STDIN_FILENO);
+            close(STDOUT_FILENO);
+            close(STDERR_FILENO);
+        }
+
     }
 
     while (1) {
