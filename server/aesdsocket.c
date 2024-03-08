@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
     int yes = 1;
     int rv;
 
-    FILE *fp = fopen(FILEPATH, "a");
+    FILE *fp = fopen(FILEPATH, "a+");
     openlog(NULL, 0, LOG_USER);
 
     /* Right from the material example .. lets try it*/
@@ -132,10 +132,6 @@ int main(int argc, char *argv[]){
             char buffer[1024];
             int number_of_bytes;
 
-            //if (send(new_fd, "connection accepted", strlen("connection accepted") + 1, 0) == -1){
-            //    perror("send");
-            //}
-
             while ((number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0)) > 0){
                 buffer[number_of_bytes] = '\0';
                 fputs(buffer, fp);
@@ -147,10 +143,6 @@ int main(int argc, char *argv[]){
             rewind(fp);
             while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
                 send(new_fd, buffer, number_of_bytes, 0);
-            }
-
-            if (number_of_bytes < 0){
-                perror("Not getting bytes");
             }
 
             fclose(fp);
@@ -168,11 +160,15 @@ int main(int argc, char *argv[]){
 
     if (caught_sigint) {
         printf("\nCaught SIGINT, exiting.\n");
+        syslog(LOG_ERR, "Caught SIGINT, exiting.");
+        remove(FILEPATH);
     }
     if (caught_sigterm) {
         printf("\nCaught SIGTERM, exiting.\n");
+        syslog(LOG_ERR, "Caught SIGTERM, exiting.");
+        remove(FILEPATH);
     }
 
-
+    remove(FILEPATH);
     return 0;
 }
