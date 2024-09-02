@@ -43,13 +43,14 @@ static void signal_handler(int signal_number){
 
 // Thread function
 static void * threadFunc(void *arg){
-
+    long unsigned res;
     char *s_t = (char *) arg;
     //printf("This is test of thread: %ld\n", pthread_self());
-
     //pthread_exit((void *) true); Not sure I need this...
 
-    return (void *) true;
+    res = pthread_self();
+
+    return (void *) res;
 
 }
 
@@ -59,7 +60,7 @@ typedef struct slist_data_s slist_data_t;
 
 struct slist_data_s {
     int value;
-    SLIST_ENTRY(slist_data_s) entires;
+    SLIST_ENTRY(slist_data_s) entries;
 };
 
 void slist(int id){
@@ -69,8 +70,12 @@ void slist(int id){
     SLIST_INIT(&head);
 
     datap = malloc(sizeof(slist_data_t));
-    datap->value = id; // I think thread IDs go here...
+    datap->value = id;
+    SLIST_INSERT_HEAD(&head, datap, entries);
 
+    //SLIST_FOREACH(datap, &head, entries) {
+    //    printf("Queue has: %d\n", datap->value);
+    //}
 
     }
 
@@ -79,6 +84,10 @@ void slist(int id){
 
     // Or I maybe can define all of this global but it bothers me.
 
+
+// Timer
+
+  // 02 Sep 2024 14:51:00 -0500  <- example of RFC2822 
 
 
 int main(int argc, char *argv[]){
@@ -215,14 +224,14 @@ int main(int argc, char *argv[]){
 
         // Lets try a thread here ....
         // Then get the ID and push it into the queue
-
+        
         s_t = pthread_create(&t1, NULL, threadFunc, &args);
         if (s_t != 0){
             perror("pthread_create");
         }
-        
-        //slist(s_t);
 
+        printf("Res is equal to: %ld\n", (long )res);
+        
         if (!fork()){ 
             close(sockfd);
 
