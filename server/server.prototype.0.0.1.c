@@ -43,11 +43,12 @@ static void signal_handler(int signal_number){
 
 // Thread function
 static void * threadFunc(void *arg){
-    char *s = (char *) arg;
+    char *s_t = (char *) arg;
 
-    printf("%s", s);
+    printf("%s", s_t);
+    printf("This is test of threads\n");
 
-    return (void *) strlen(s);
+    return (void *) strlen(s_t);
 
     // This might hold the actual server stuff now
 }
@@ -188,7 +189,7 @@ int main(int argc, char *argv[]){
         perror("listen");
         return 1;
     }
-
+    printf("Starting While Loop:\n");
     while (1) {
         if (caught_sigint || caught_sigterm) {
             break;
@@ -204,20 +205,21 @@ int main(int argc, char *argv[]){
         if (connect_addr.ss_family == AF_INET){
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)&connect_addr;
             inet_ntop(AF_INET, &ipv4->sin_addr, s, sizeof s);
+            printf("Accepted connection from %s\n", s);
+
         }
 
-        printf("Accepted connection from %s\n", s);
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
         // Lets try a thread here ....
         // Then get the ID and push it into the queue
 
-        s_t = pthread_create(&t1, NULL, threadFunc, "Test\n");
-        if (s != 0){
+        s_t = pthread_create(&t1, NULL, threadFunc, &args);
+        if (s_t != 0){
             perror("pthread_create");
         }
         
-        slist(s_t);
+        //slist(s_t);
 
         if (!fork()){ 
             close(sockfd);
