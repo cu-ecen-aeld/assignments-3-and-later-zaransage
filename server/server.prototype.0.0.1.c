@@ -43,14 +43,14 @@ static void signal_handler(int signal_number){
 
 // Thread function
 static void * threadFunc(void *arg){
+
     char *s_t = (char *) arg;
+    //printf("This is test of thread: %ld\n", pthread_self());
 
-    printf("%s", s_t);
-    printf("This is test of thread: %ld\n", pthread_self());
+    //pthread_exit((void *) true); Not sure I need this...
 
-    return (void *) strlen(s_t);
+    return (void *) true;
 
-    // This might hold the actual server stuff now
 }
 
 
@@ -70,6 +70,8 @@ void slist(int id){
 
     datap = malloc(sizeof(slist_data_t));
     datap->value = id; // I think thread IDs go here...
+
+
     }
 
     // I either need more functions or more voids to manage the structs
