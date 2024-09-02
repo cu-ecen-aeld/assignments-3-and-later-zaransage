@@ -46,7 +46,7 @@ static void * threadFunc(void *arg){
     char *s_t = (char *) arg;
 
     printf("%s", s_t);
-    printf("This is test of threads\n");
+    printf("This is test of thread: %ld\n", pthread_self());
 
     return (void *) strlen(s_t);
 
