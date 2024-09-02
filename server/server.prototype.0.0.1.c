@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <time.h>
 #include "queue.h"
 #include "shannon.c"
 
@@ -43,17 +44,15 @@ static void signal_handler(int signal_number){
 
 // Thread function
 static void * threadFunc(void *arg){
-    long unsigned res;
+
     char *s_t = (char *) arg;
     //printf("This is test of thread: %ld\n", pthread_self());
     //pthread_exit((void *) true); Not sure I need this...
 
-    res = pthread_self();
 
     return (void *) res;
 
 }
-
 
 // Queue
 typedef struct slist_data_s slist_data_t;
@@ -87,8 +86,20 @@ void slist(int id){
 
 // Timer
 
-  // 02 Sep 2024 14:51:00 -0500  <- example of RFC2822 
+static void myTime() {
 
+    time_t now;
+    time(&now);
+
+    struct tm *local = localtime(&now);
+
+    char buffer[80];
+    // Mon 02 Sep 2024 08:53:12 +0000
+    strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
+
+    printf("%s\n", buffer);
+
+}
 
 int main(int argc, char *argv[]){
     // Socket handling
