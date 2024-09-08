@@ -27,6 +27,9 @@
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
 
+#define RUNNING 0;
+#define COMPLETED 1;
+
 bool caught_sigint = false;
 bool caught_sigterm = false;
 bool run_as_daemon = false;
@@ -73,19 +76,20 @@ struct shared_thread_data {
 void *threadFunc(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     
-    thread_data->status = 1;
 
-    while (true) { // eah... I don't really like what I did here.
+    while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
         sleep(10);
         pthread_mutex_lock(&mutex);
         myTime();
         pthread_mutex_unlock(&mutex);
-
     }
 
-    return NULL;
+    pthread_mutex_lock(&mutex);
+    thread_data->status = COMPLETED;
+    pthread_mutex_unlock(&mutex);
+    
+    pthread_exit(NULL);
 }
-
 
 // Queue
 typedef struct slist_data_s slist_data_t;
@@ -110,9 +114,6 @@ void slist(pthread_t tid) {
     SLIST_FOREACH_SAFE(datap, &head, entries, np_temp) {
     printf("Thread ID: %lu\n", datap->thread_id);
     }
-
-    return NULL;
-
 }
 
 
@@ -275,7 +276,7 @@ int main(int argc, char *argv[]){
 
         SLIST_FOREACH_SAFE(iter, &thread_queue, entries, temp) {
             if (iter->status = 0) {
-                pthread_join(iter->status, NULL);
+                pthread_join(iter->thread_id, NULL);
                 printf("Joining thread %lu\n", (unsigned long) iter->thread_id);
 
                 SLIST_REMOVE(&thread_queue, iter, slist_data_s, entries);
