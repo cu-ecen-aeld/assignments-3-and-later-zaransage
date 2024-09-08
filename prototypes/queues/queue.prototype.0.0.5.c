@@ -50,12 +50,8 @@ void *thread_function_read(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     int s;
     
-    if (pthread_mutex_init(&mutex, NULL) != 0) {
-    perror("Mutex initialization failed");
-    exit(1);
-    }
+    pthread_mutex_lock(&mutex);
 
-    thread_data->thread_id = pthread_self();
     //printf("Thread ID from function: %lu\n", (unsigned long)pthread_self());
     //myTime();
     pthread_mutex_unlock(&mutex);
@@ -63,45 +59,42 @@ void *thread_function_read(void *data) {
     return NULL;
 }
 
-int main (int argc, char *argv[]) {
 
-    pthread_t thread1, thread2;
-
-    struct shared_thread_data data1, data2;
-    //struct shared_thread_data *data = (struct thread_data *) calloc(0, sizeof(data));
+void queueAddItem(pthread_t tid) {
 
     slist_data_t *datap=NULL;
     SLIST_HEAD(slisthead, slist_data_s) head;
     SLIST_INIT(&head);
 
-    int a, b;
-
-    printf("Mutex\n");
-    pthread_mutex_init(&mutex, NULL);
-
-    printf("Thread create\n");
-    a = pthread_create(&thread1, NULL, thread_function_read, &data1);
-    printf("Result from thread 1: %d\n", a);
-
     datap = malloc(sizeof(slist_data_t));
-    datap->value = data1.thread_id;
+    datap->value = tid;
     SLIST_INSERT_HEAD(&head, datap, entries);
-
-    b = pthread_create(&thread2, NULL, thread_function_read, &data2);
-    printf("Result from thread 2: %d\n", b);
-    
-    datap = malloc(sizeof(slist_data_t));
-    datap->value = data2.thread_id;
-    SLIST_INSERT_HEAD(&head, datap, entries);
-
-
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
-
     SLIST_FOREACH_SAFE(datap, &head, entries, np_temp) {
     printf("Thread ID: %lu\n", datap->value);
     }
 
+}
+
+int main (int argc, char *argv[]) {
+
+    pthread_t thread1, thread2;
+
+    struct shared_thread_data data1;
+    //struct shared_thread_data *data = (struct thread_data *) calloc(0, sizeof(data));
+
+
+    int a, b;
+
+    pthread_mutex_init(&mutex, NULL);
+
+    a = pthread_create(&thread1, NULL, thread_function_read, &data1);
+    queueAddItem(thread1);
+
+    b = pthread_create(&thread2, NULL, thread_function_read, &data1);
+    queueAddItem(thread2);
+
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
 
     pthread_mutex_destroy(&mutex);
 

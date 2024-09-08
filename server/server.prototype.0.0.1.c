@@ -31,6 +31,8 @@ bool caught_sigint = false;
 bool caught_sigterm = false;
 bool run_as_daemon = false;
 
+pthread_mutex_t mutex;
+
 
 // Signal handler
 static void signal_handler(int signal_number){
@@ -43,62 +45,72 @@ static void signal_handler(int signal_number){
 
 
 // Thread function
-static void * threadFunc(void *arg){
 
-    char *s_t = (char *) arg;
-    //printf("This is test of thread: %ld\n", pthread_self());
-    //pthread_exit((void *) true); Not sure I need this...
+struct shared_thread_data {
+    pthread_mutex_t *mutex;
+    int status;
+    pthread_t thread_id;
+    time_t time;
+};
 
+void *threadFunc(void *data) {
+    struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
+    
+    pthread_mutex_lock(&mutex);
+    thread_data->status = 1;
+    //printf("Thread ID from function: %lu\n", (unsigned long)pthread_self());
+    //myTime();
+    pthread_mutex_unlock(&mutex);
 
-    return (void *) res;
-
+    return NULL;
 }
+
 
 // Queue
 typedef struct slist_data_s slist_data_t;
 
 struct slist_data_s {
-    int value;
+    pthread_t thread_id;
+    int status;
     SLIST_ENTRY(slist_data_s) entries;
-};
+} *np_temp;
 
-void slist(int id){
+
+void slist(pthread_t tid) {
+
     slist_data_t *datap=NULL;
-
     SLIST_HEAD(slisthead, slist_data_s) head;
     SLIST_INIT(&head);
 
     datap = malloc(sizeof(slist_data_t));
-    datap->value = id;
+    datap->thread_id = tid;
     SLIST_INSERT_HEAD(&head, datap, entries);
 
-    //SLIST_FOREACH(datap, &head, entries) {
-    //    printf("Queue has: %d\n", datap->value);
-    //}
-
+    SLIST_FOREACH_SAFE(datap, &head, entries, np_temp) {
+    printf("Thread ID: %lu\n", datap->thread_id);
     }
 
-    // I either need more functions or more voids to manage the structs
-    // Then pass ids or references around maybe ...
-
-    // Or I maybe can define all of this global but it bothers me.
+}
 
 
 // Timer
 
-static void myTime() {
-
+void myTime() {
     time_t now;
     time(&now);
 
     struct tm *local = localtime(&now);
 
     char buffer[80];
-    // Mon 02 Sep 2024 08:53:12 +0000
     strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
 
-    printf("%s\n", buffer);
+    FILE *fp = fopen("/tmp/time.txt", "w");
+    if (fp == NULL) {
+        perror("Error opening file");
+    }
 
+    fprintf(fp, "%s\n", buffer);
+    fclose(fp);
 }
 
 int main(int argc, char *argv[]){
@@ -115,7 +127,9 @@ int main(int argc, char *argv[]){
     pthread_t t1;
     void *res;
     int s_t;
-    char args;
+    char data;
+
+    pthread_mutex_init(&mutex, NULL);
 
     // Queue handling
 
@@ -235,13 +249,17 @@ int main(int argc, char *argv[]){
 
         // Lets try a thread here ....
         // Then get the ID and push it into the queue
-        
-        s_t = pthread_create(&t1, NULL, threadFunc, &args);
+        pthread_t t2;
+        void *resp;
+
+        s_t = pthread_create(&t2, NULL, threadFunc, &data);
         if (s_t != 0){
             perror("pthread_create");
         }
 
-        printf("Res is equal to: %ld\n", (long )res);
+        pthread_join(t2, NULL);
+
+        printf("Res is equal to: %ld\n", (long )resp);
         
         if (!fork()){ 
             close(sockfd);
@@ -287,5 +305,6 @@ int main(int argc, char *argv[]){
     }
 
     remove(FILEPATH);
+    pthread_mutex_destroy(&mutex);
     return 0;
 }
