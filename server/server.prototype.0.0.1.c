@@ -43,24 +43,45 @@ static void signal_handler(int signal_number){
     }
 }
 
+// Timer
+
+void myTime() {
+    time_t now;
+    time(&now);
+
+    struct tm *local = localtime(&now);
+
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
+
+    FILE *fp = fopen(FILEPATH, "a+");
+    if (fp == NULL) {
+        perror("Error opening file");
+    }
+
+    fprintf(fp, "%s\n", buffer);
+    fclose(fp);
+}
 
 // Thread function
 
 struct shared_thread_data {
     pthread_mutex_t *mutex;
     int status;
-    pthread_t thread_id;
-    time_t time;
 };
 
 void *threadFunc(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     
-    pthread_mutex_lock(&mutex);
     thread_data->status = 1;
-    //printf("Thread ID from function: %lu\n", (unsigned long)pthread_self());
-    //myTime();
-    pthread_mutex_unlock(&mutex);
+
+    while (true) { // eah... I don't really like what I did here.
+        sleep(10);
+        pthread_mutex_lock(&mutex);
+        myTime();
+        pthread_mutex_unlock(&mutex);
+
+    }
 
     return NULL;
 }
@@ -90,28 +111,10 @@ void slist(pthread_t tid) {
     printf("Thread ID: %lu\n", datap->thread_id);
     }
 
+    return NULL;
+
 }
 
-
-// Timer
-
-void myTime() {
-    time_t now;
-    time(&now);
-
-    struct tm *local = localtime(&now);
-
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
-
-    FILE *fp = fopen("/tmp/time.txt", "w");
-    if (fp == NULL) {
-        perror("Error opening file");
-    }
-
-    fprintf(fp, "%s\n", buffer);
-    fclose(fp);
-}
 
 int main(int argc, char *argv[]){
     // Socket handling
@@ -132,6 +135,8 @@ int main(int argc, char *argv[]){
     pthread_mutex_init(&mutex, NULL);
 
     // Queue handling
+    SLIST_HEAD(slisthead, slist_data_s) thread_queue;
+    SLIST_INIT(&thread_queue);
 
     FILE *fp = fopen(FILEPATH, "a+");
     openlog(NULL, 0, LOG_USER);
@@ -249,18 +254,38 @@ int main(int argc, char *argv[]){
 
         // Lets try a thread here ....
         // Then get the ID and push it into the queue
-        pthread_t t2;
-        void *resp;
 
-        s_t = pthread_create(&t2, NULL, threadFunc, &data);
-        if (s_t != 0){
+        // I might have to move all of the calls from my function slist to here ...
+
+        slist_data_t *new_thread = malloc(sizeof(slist_data_t));
+        new_thread->status = 1;
+
+        if (pthread_create(&new_thread->thread_id, NULL, threadFunc, new_thread) != 0) {
             perror("pthread_create");
+            free(new_thread);
+            continue;
         }
 
-        pthread_join(t2, NULL);
+        pthread_mutex_lock(&mutex);
+        SLIST_INSERT_HEAD(&thread_queue, new_thread, entries);
+        pthread_mutex_unlock(&mutex);
 
-        printf("Res is equal to: %ld\n", (long )resp);
-        
+        slist_data_t *iter, *temp;
+        pthread_mutex_lock(&mutex);
+
+        SLIST_FOREACH_SAFE(iter, &thread_queue, entries, temp) {
+            if (iter->status = 0) {
+                pthread_join(iter->status, NULL);
+                printf("Joining thread %lu\n", (unsigned long) iter->thread_id);
+
+                SLIST_REMOVE(&thread_queue, iter, slist_data_s, entries);
+                free(iter);
+            }
+        }
+
+        pthread_mutex_unlock(&mutex);
+
+        // Thread to here   
         if (!fork()){ 
             close(sockfd);
 
@@ -291,7 +316,6 @@ int main(int argc, char *argv[]){
    
     close(sockfd);
     closelog();
-
 
     if (caught_sigint) {
         printf("\nCaught SIGINT, exiting.\n");
