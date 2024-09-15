@@ -17,13 +17,6 @@
 #include "queue.h"
 #include "shannon.c"
 
-
-// Accept Connection
-// Create Thread
-// For threads in list, are any complete?
-// Yes, pthread join
-
-
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
 
@@ -35,7 +28,6 @@ bool caught_sigterm = false;
 bool run_as_daemon = false;
 
 pthread_mutex_t mutex;
-
 
 // Signal handler
 static void signal_handler(int signal_number){
@@ -57,13 +49,19 @@ void myTime() {
     char buffer[80];
     strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
 
+
+    pthread_mutex_lock(&mutex);
     FILE *fp = fopen(FILEPATH, "a+");
     if (fp == NULL) {
         perror("Error opening file");
+    pthread_mutex_unlock(&mutex);
+    return;
     }
 
     fprintf(fp, "%s\n", buffer);
     fclose(fp);
+    pthread_mutex_unlock(&mutex);
+
 }
 
 // Thread function
@@ -75,13 +73,13 @@ struct shared_thread_data {
 
 void *threadFunc(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
-    
+    thread_data->status = RUNNING;
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
-        sleep(10);
         pthread_mutex_lock(&mutex);
         myTime();
         pthread_mutex_unlock(&mutex);
+        sleep(10);
     }
 
     pthread_mutex_lock(&mutex);
@@ -99,22 +97,6 @@ struct slist_data_s {
     int status;
     SLIST_ENTRY(slist_data_s) entries;
 } *np_temp;
-
-
-void slist(pthread_t tid) {
-
-    slist_data_t *datap=NULL;
-    SLIST_HEAD(slisthead, slist_data_s) head;
-    SLIST_INIT(&head);
-
-    datap = malloc(sizeof(slist_data_t));
-    datap->thread_id = tid;
-    SLIST_INSERT_HEAD(&head, datap, entries);
-
-    SLIST_FOREACH_SAFE(datap, &head, entries, np_temp) {
-    printf("Thread ID: %lu\n", datap->thread_id);
-    }
-}
 
 
 int main(int argc, char *argv[]){
@@ -231,6 +213,7 @@ int main(int argc, char *argv[]){
         perror("listen");
         return 1;
     }
+
     printf("Starting While Loop:\n");
     while (1) {
         if (caught_sigint || caught_sigterm) {
@@ -253,13 +236,8 @@ int main(int argc, char *argv[]){
 
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
-        // Lets try a thread here ....
-        // Then get the ID and push it into the queue
-
-        // I might have to move all of the calls from my function slist to here ...
-
         slist_data_t *new_thread = malloc(sizeof(slist_data_t));
-        new_thread->status = 1;
+        //new_thread->status = 1;
 
         if (pthread_create(&new_thread->thread_id, NULL, threadFunc, new_thread) != 0) {
             perror("pthread_create");
@@ -275,7 +253,7 @@ int main(int argc, char *argv[]){
         pthread_mutex_lock(&mutex);
 
         SLIST_FOREACH_SAFE(iter, &thread_queue, entries, temp) {
-            if (iter->status = 0) {
+            if (iter->status == COMPLETED) {
                 pthread_join(iter->thread_id, NULL);
                 printf("Joining thread %lu\n", (unsigned long) iter->thread_id);
 
