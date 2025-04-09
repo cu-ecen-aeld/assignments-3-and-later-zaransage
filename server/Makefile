@@ -3,17 +3,18 @@ GCC := gcc
 CROSS_COMPILE := aarch64-none-linux-gnu-
 SOURCE := aesdsocket.c
 TARGET := aesdsocket
+CFLAGS := -pthread
 
 PREFIX ?= /usr/local
 DESTDIR ?= 
 INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
 
 default:
-	$(GCC) $(SOURCE) -o $(TARGET) -pthread
+	$(GCC) $(SOURCE) -o $(TARGET) $(CFLAGS)
 
 # Cross compile
 cross_compile:
-	$(CROSS_COMPILE)gcc $(SOURCE) -o $(TARGET) -pthread
+	$(CROSS_COMPILE)gcc $(SOURCE) -o $(TARGET) $(CFLAGS)
 
 # Clean
 clean:
