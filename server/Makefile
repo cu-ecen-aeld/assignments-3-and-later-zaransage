@@ -1,3 +1,4 @@
+# I need to update some of these to be optional, I need to create an all stage, add ld and cc flags ... yocto wants a lot.
 GCC := gcc
 CROSS_COMPILE := aarch64-none-linux-gnu-
 SOURCE := aesdsocket.c
@@ -8,11 +9,11 @@ DESTDIR ?=
 INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
 
 default:
-	$(GCC) $(SOURCE) -o $(TARGET)
+	$(GCC) $(SOURCE) -o $(TARGET) -pthread
 
 # Cross compile
 cross_compile:
-	$(CROSS_COMPILE)gcc $(SOURCE) -o $(TARGET)
+	$(CROSS_COMPILE)gcc $(SOURCE) -o $(TARGET) -pthread
 
 # Clean
 clean:
