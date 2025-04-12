@@ -42,8 +42,11 @@ static void signal_handler(int signal_number){
 }
 
 // Timer
+// This time, try different thread for time
 
-void myTime() {
+
+void *time_thread(void *data) {
+    struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     time_t now;
     time(&now);
 
@@ -79,7 +82,7 @@ struct shared_thread_data {
     int status;
 };
 
-void *threadFunc(void *data) {
+void *client_thread(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     thread_data->status = RUNNING;
 
@@ -101,15 +104,20 @@ void *threadFunc(void *data) {
     pthread_exit(NULL);
 }
 
-// This time, try different one for time
-
-
 // Queue
 // Can't get queue.h to work. Lets try: http://cslibrary.stanford.edu/103/LinkedListBasics.pdf
 struct linked_list_node{
     pthread_t id;
     struct node *next
 } struct node *thread_list = NULL;
+
+void add_node(){
+    return;
+}
+
+void remove_node(){
+    return;
+}
 
 
 int main(int argc, char *argv[]){
@@ -241,17 +249,18 @@ int main(int argc, char *argv[]){
 
     printf("Starting While Loop:\n");
     while (!caught_sigint && !caught_sigterm) {
-        sin_size = sizeof connect_addr;
+        socket_t sin_size = sizeof connect_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
 
-        if (new_fd == -1){
+        if (*new_fd == -1){
             perror("accept");
+            free(new_fd);
             continue;
         }
 
         if (connect_addr.ss_family == AF_INET){
             struct sockaddr_in *ipv4 = (struct sockaddr_in *)&connect_addr;
-            inet_ntop(AF_INET, &ipv4->sin_addr, s, sizeof s);
+            inet_ntop(AF_INET, &ipv4->sin_addr, s, sizeof(s));
             printf("Accepted connection from %s\n", s);
 
         }
@@ -259,13 +268,14 @@ int main(int argc, char *argv[]){
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
         slist_data_t *new_thread = malloc(sizeof(slist_data_t));
-
-        if (pthread_create(&new_thread->thread_id, NULL, threadFunc, new_thread) != 0) {
+        pthread_t client_tid;
+        if (pthread_create(&client_tid, NULL, client_thread, new_thread) != 0) {
             perror("pthread_create");
+            close(*new_thread)
             free(new_thread);
             continue;
         }
-
+        // This is the broken spot still. I need to replace this part later.
         pthread_mutex_lock(&mutex);
         SLIST_INSERT_HEAD(&thread_queue, new_thread, entries);
         pthread_mutex_unlock(&mutex);
@@ -285,7 +295,7 @@ int main(int argc, char *argv[]){
 
         pthread_mutex_unlock(&mutex);
 
-        // Thread to here   
+        // Thread to here - This below somehow goes into client thread now. 
         if (!fork()){ 
             close(sockfd);
 
