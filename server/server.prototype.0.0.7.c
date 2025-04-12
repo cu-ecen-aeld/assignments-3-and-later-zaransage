@@ -41,12 +41,6 @@ static void signal_handler(int signal_number){
     }
 }
 
-// Can't get queue.h to work. Lets try: http://cslibrary.stanford.edu/103/LinkedListBasics.pdf
-struct linked_list_node{
-    pthread_t id;
-    struct node *next
-} struct node *thread_list = NULL;
-
 // Timer
 
 void myTime() {
@@ -78,7 +72,7 @@ void myTime() {
 
 }
 
-// Thread function
+// Thread function for the client
 
 struct shared_thread_data {
     pthread_mutex_t *mutex;
@@ -107,14 +101,15 @@ void *threadFunc(void *data) {
     pthread_exit(NULL);
 }
 
-// Queue
-typedef struct slist_data_s slist_data_t;
+// This time, try different one for time
 
-struct slist_data_s {
-    pthread_t thread_id;
-    int status;
-    SLIST_ENTRY(slist_data_s) entries;
-} *np_temp;
+
+// Queue
+// Can't get queue.h to work. Lets try: http://cslibrary.stanford.edu/103/LinkedListBasics.pdf
+struct linked_list_node{
+    pthread_t id;
+    struct node *next
+} struct node *thread_list = NULL;
 
 
 int main(int argc, char *argv[]){
@@ -133,20 +128,14 @@ int main(int argc, char *argv[]){
     int s_t;
     char data;
 
-    pthread_mutex_init(&mutex, NULL);
-
     // Queue handling
-    SLIST_HEAD(slisthead, slist_data_s) thread_queue;
-    SLIST_INIT(&thread_queue);
+    // Let me replace with a linked list
 
     FILE *fp = fopen(FILEPATH, "a+");
     openlog(NULL, 0, LOG_USER);
 
     /* Right from the material example .. lets try it*/
 
-    struct sigaction new_action;
-    bool success = true;
-    
     memset(&new_action, 0, sizeof(struct sigaction));
     new_action.sa_handler=signal_handler;
 
@@ -170,21 +159,28 @@ int main(int argc, char *argv[]){
     if (run_as_daemon){
         pid_t pid;
             pid = fork();
+
         if (pid < 0){
           perror("fork");
           exit(-1);
-        } else if (pid > 0){
-            setsid();
+        }
+
+        if (pid > 0){
             close(STDIN_FILENO);
             close(STDOUT_FILENO);
             close(STDERR_FILENO);
             exit(0); // A thank you to https://github.com/cu-ecen-aeld/assignments-3-and-later-asabbagh4 for this one exit to fix everything.
         }
-
+        setsid();
+        umask(0);
+        syslog(LOG_DEBUG, "Daemon working")
     }
 
     /*A horrible smattering of beej.us, Linux Systems Programming and some Googling errors*/
+    struct sigaction new_action;    
 
+
+    // Original socket setup I think will work. Its my threads which are broken...
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -192,7 +188,7 @@ int main(int argc, char *argv[]){
 
     if ((rv = getaddrinfo(NULL, PORT, &hints, &serverinfo)) != 0){
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        exit(1);
     }
 
     for (p = serverinfo; p != NULL; p = p->ai_next){
@@ -206,7 +202,7 @@ int main(int argc, char *argv[]){
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1){
             perror("Unable to set socket options");
             syslog(LOG_ERR, "Socket option error");
-            return 1;
+            continue;
         }
 
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1){
@@ -224,19 +220,27 @@ int main(int argc, char *argv[]){
 
     if (p == NULL){
         fprintf(stderr, "server: failed to bind\n");
-        return 1;
+        exit(1);
     }
 
     if (listen(sockfd, 10) == -1){
         perror("listen");
-        return 1;
+        close(sockfd);
+        exit(1);
     }
 
+/* Let me start time thread*/
+    pthread_t timestamp_id;
+    if(pthread_create(&timestamp_id, NULL,) != 0){
+        perror("Timestamp thread");
+        close(sockfd);
+        exit(1);
+    }
+    // More queue stuff later
+
+
     printf("Starting While Loop:\n");
-    while (1) {
-        if (caught_sigint || caught_sigterm) {
-            break;
-        }
+    while (!caught_sigint && !caught_sigterm) {
         sin_size = sizeof connect_addr;
         new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
 
