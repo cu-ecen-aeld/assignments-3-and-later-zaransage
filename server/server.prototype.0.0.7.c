@@ -14,8 +14,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <time.h>
-#include <fnctl.h>
-#include "queue.h"
+#include <fcntl.h>
 
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
@@ -25,8 +24,17 @@ volatile sig_atomic_t caught_sigterm = 0;
 
 bool run_as_daemon = false;
 
-pthread_mutex_t mutex_for_files = MUTEX;
-pthread_mutex_t mutex_for_threads = MUTEX;
+pthread_mutex_t mutex_for_files = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_for_threads = PTHREAD_MUTEX_INITIALIZER;
+
+
+// Queue
+// Can't get queue.h to work. Lets try: http://cslibrary.stanford.edu/103/LinkedListBasics.pdf
+struct linked_list_node {
+    pthread_t id;
+    struct linked_list_node *next;
+} struct node *thread_list = NULL; // pdf says to start NULL.
+
 
 // Signal handler from the book
 static void signal_handler(int signal_number){
@@ -38,19 +46,59 @@ static void signal_handler(int signal_number){
     }
 }
 
+
+void add_node(pthread_t id){
+    // Fist, let me drip this into the heap.
+    struct linked_list_node *new_node = malloc(sizeof(struct(linked_list_node)));
+    if (!new_node){
+        strerror(errno);
+        return;
+    }
+    new_node->id = id;
+    new_node->next = NULL; // So sayith the link...
+
+    pthread_mutex_lock(&mutex_for_threads);
+    if (!thread_list){
+        thread_list = new_node;
+    } else {
+        struct linked_list_node *current = thread_list;
+        while(current->next){
+            current = current->next;
+        }
+        current->next = new_node;
+    }
+    pthread_mutex_unlock(&mutex_for_threads);
+    
+}
+
+
+void remove_node(void){
+    pthread_mutex_lock(&mutex_for_threads);
+    struct linked_list_node *current = thread_list;
+    while(current){
+        pthread_join(current->id, NULL);
+        struct linked_list_node *temp = current;
+        current = current->next;
+        free(temp);
+    }
+    thread_list = NULL;
+    pthread_mutex_unlock(&mutex_for_threads);
+}
+
+
 // Timer
 // This time, try different thread for time
 
 void *time_thread(void *data) {
-    struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
+    (void)data;
     while (!caught_sigint && !caught_sigterm){
         pthread_mutex_lock(&mutex_for_files);
         FILE *fp = fopen(FILEPATH, "a+");
-        if (fp == NULL) {
-            time_t now;
+        if (fp) {
+            time_t now = time(NULL);
             struct tm *local = localtime(&now);
-            char buffer[80];
-            strftime(buffer, sizeof(buffer), "timestamp:%a, %d %b %Y %r %z", local);
+            char buffer[1024];
+            strftime(buffer, sizeof(buffer), "timestamp:%a, %d %b %Y %H:%M:%S %z\n", local);
             fclose(fp)            
         }
         pthread_mutex_unlock(&mutex_for_files);
@@ -66,26 +114,22 @@ void *time_thread(void *data) {
 
 // Thread function for the client
 
-struct shared_thread_data {
-    pthread_mutex_t *mutex;
-    int status;
-};
-
 void *client_thread(void *data) {
     int new_fd  = *(int *)data;
+    free(data);
     char buffer[1024];
     ssize_t number_of_bytes;
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
-        number_of_bytes = recv(client_fd, buffer, sizeof(buffer) -1, 0);
+        number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0);
         if (number_of_bytes <= 0){
             strerror(errno);
             break;
         }
 
         buffer[number_of_bytes] = '\0';
-        pthread_mutex_lock(&mutex);
-        FILE = *fp = fopen(FILEPATH, "a+");
+        pthread_mutex_lock(&mutex_for_files);
+        FILE *fp = fopen(FILEPATH, "a+");
         if (fp){
             if (fputs(buffer, fp) < 0){
                 strerror(errno);
@@ -98,20 +142,20 @@ void *client_thread(void *data) {
         else {
             strerror(errno);
         }
-        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex_for_files);
 
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&mutex_for_files);
         fp = fopen(FILEPATH, "r");
         if (fp){
             while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
-                send(new_fd, buffer, number_of_bytes, 0);
-                fclose(fp);
-                close(new_fd);
-                break;
+                if (send(new_fd, buffer, number_of_bytes, 0)){
+                    fclose(fp);
+                    break;
+                }
             }
             fclose(fp);
         }
-        pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&mutex_for_files);
 
         if (strchr(buffer, '\n')){
             break;
@@ -119,50 +163,6 @@ void *client_thread(void *data) {
         close(new_fd);
         return NULL;
     }
-}
-
-// Queue
-// Can't get queue.h to work. Lets try: http://cslibrary.stanford.edu/103/LinkedListBasics.pdf
-struct linked_list_node{
-    pthread_t id;
-    struct node *next
-} struct node *thread_list = NULL; // pdf says to start NULL.
-
-void add_node(pthread_t id){
-    // Fist, let me drip this into the heap.
-    struct linked_list_node *new_node = malloc(sizeof(struct(linked_list_node)));
-    if (!new_node){
-        strerror(errno);
-        return;
-    }
-    new_node->id = id;
-    new_node->next = NULL; // So sayith the link...
-
-    pthread_mutex_lock(&mutex_for_threads);
-    if !(thread_list){
-        thread_list = new_node;
-    } else {
-        struct node *current = thread_list;
-        while(current->next){
-            current = current->next;
-        }
-        current->next = new_node;
-    }
-    pthread_mutex_unlock(&mutex_for_threads);
-    
-}
-
-void remove_node(void){
-    pthread_mutex_lock(&mutex_for_threads);
-    struct node *current = thread_list;
-    while(current){
-        pthread_join(current->id, NULL);
-        struct node *temp = current;
-        current = current->next;
-        free(temp);
-    }
-    thread_list = NULL;
-    pthread_mutex_unlock(&mutex_for_threads);
 }
 
 
