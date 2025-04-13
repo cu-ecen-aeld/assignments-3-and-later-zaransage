@@ -101,13 +101,18 @@ void *client_thread(void *data) {
 struct linked_list_node{
     pthread_t id;
     struct node *next
-} struct node *thread_list = NULL;
+} struct node *thread_list = NULL; // pdf says to start NULL.
 
 void add_node(){
+    // Memory allocate
+    // Add data to struct
+    // Point one node to the next
     return;
 }
 
 void remove_node(){
+    // Might have to seek and remove
+    // Update link? Set data to NULL?
     return;
 }
 
