@@ -20,9 +20,6 @@
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
 
-#define RUNNING 0
-#define COMPLETED 1
-
 volatile sig_atomic_t caught_sigint = 0;
 volatile sig_atomic_t caught_sigterm = 0;
 
@@ -58,7 +55,7 @@ void *time_thread(void *data) {
         }
         pthread_mutex_unlock(&mutex_for_files);
 
-        struct timespec ts = { .tv_sec = 1, .tv_nsec = 0};
+        struct timespec ts = { .tv_sec = 10, .tv_nsec = 0};
         while (nanosleep(&ts, &ts) == -1 && errno == EINTR){
             if (caught_sigint || caught_sigterm) break;
         }
@@ -131,17 +128,41 @@ struct linked_list_node{
     struct node *next
 } struct node *thread_list = NULL; // pdf says to start NULL.
 
-void add_node(){
-    // Memory allocate
-    // Add data to struct
-    // Point one node to the next
-    return;
+void add_node(pthread_t id){
+    // Fist, let me drip this into the heap.
+    struct linked_list_node *new_node = malloc(sizeof(struct(linked_list_node)));
+    if (!new_node){
+        strerror(errno);
+        return;
+    }
+    new_node->id = id;
+    new_node->next = NULL; // So sayith the link...
+
+    pthread_mutex_lock(&mutex_for_threads);
+    if !(thread_list){
+        thread_list = new_node;
+    } else {
+        struct node *current = thread_list;
+        while(current->next){
+            current = current->next;
+        }
+        current->next = new_node;
+    }
+    pthread_mutex_unlock(&mutex_for_threads);
+    
 }
 
-void remove_node(){
-    // Might have to seek and remove
-    // Update link? Set data to NULL?
-    return;
+void remove_node(void){
+    pthread_mutex_lock(&mutex_for_threads);
+    struct node *current = thread_list;
+    while(current){
+        pthread_join(current->id, NULL);
+        struct node *temp = current;
+        current = current->next;
+        free(temp);
+    }
+    thread_list = NULL;
+    pthread_mutex_unlock(&mutex_for_threads);
 }
 
 
@@ -164,7 +185,6 @@ int main(int argc, char *argv[]){
     // Queue handling
     // Let me replace with a linked list
 
-    FILE *fp = fopen(FILEPATH, "a+");
     openlog(NULL, 0, LOG_USER);
 
     /* Right from the material example .. lets try it*/
@@ -264,22 +284,30 @@ int main(int argc, char *argv[]){
 
 /* Let me start time thread*/
     pthread_t timestamp_id;
-    if(pthread_create(&timestamp_id, NULL,) != 0){
+    if(pthread_create(&timestamp_id, NULL, time_thread, NULL) != 0){
         perror("Timestamp thread");
         close(sockfd);
         exit(1);
     }
-    // More queue stuff later
-
+    // More queue stuff
+    add_node(timestamp_tid);
 
     printf("Starting While Loop:\n");
     while (!caught_sigint && !caught_sigterm) {
-        socket_t sin_size = sizeof connect_addr;
-        new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
+        struct sockaddr_storage connect_addr;
+        socket_t sin_size = sizeof(connect_addr);
+        int *new_fd = malloc(sizeof(int));
 
+        if(!new_fd){
+            sleep(1);
+            continue;
+        }
+
+        int *new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
         if (*new_fd == -1){
             perror("accept");
             free(new_fd);
+            sleep(1); // For some reason I need this....
             continue;
         }
 
@@ -292,7 +320,6 @@ int main(int argc, char *argv[]){
 
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
-        slist_data_t *new_thread = malloc(sizeof(slist_data_t));
         pthread_t client_tid;
         if (pthread_create(&client_tid, NULL, client_thread, new_thread) != 0) {
             perror("pthread_create");
@@ -300,53 +327,13 @@ int main(int argc, char *argv[]){
             free(new_thread);
             continue;
         }
-        // This is the broken spot still. I need to replace this part later.
-
+        add_node(client_tid);
         }
-
-
-        // Thread to here - This below somehow goes into client thread now. 
-        if (!fork()){ 
-            close(sockfd);
-
-            char buffer[1024];
-            int number_of_bytes;
-
-            while ((number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0)) > 0){
-                buffer[number_of_bytes] = '\0';
-                fputs(buffer, fp);
-                if (strchr(buffer, '\n')) break;
-            }
-
-            fflush(fp);
-            
-            rewind(fp);
-            while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
-                send(new_fd, buffer, number_of_bytes, 0);
-                fclose(fp);
-                close(new_fd);
-                break;
-            }
-
-
-        }
-
+        remove_node();
         close(new_fd);
-        if (caught_sigint) {
-            printf("\nCaught SIGINT, exiting.\n");
-            syslog(LOG_ERR, "Caught SIGINT, exiting.");
-            remove(FILEPATH);
-        }
-        if (caught_sigterm) {
-            printf("\nCaught SIGTERM, exiting.\n");
-            syslog(LOG_ERR, "Caught SIGTERM, exiting.");
-            remove(FILEPATH);
-        }
-    
         close(sockfd);
         remove(FILEPATH);
         pthread_mutex_destroy(&mutex);
         closelog();
         return 0;
-
     }
