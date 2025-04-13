@@ -75,25 +75,53 @@ struct shared_thread_data {
 };
 
 void *client_thread(void *data) {
-    struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
-    thread_data->status = RUNNING;
+    int new_fd  = *(int *)data;
+    char buffer[1024];
+    ssize_t number_of_bytes;
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
-        pthread_mutex_lock(&mutex);
-        myTime();
-        pthread_mutex_unlock(&mutex);
-        sleep(10);
-    }
+        number_of_bytes = recv(client_fd, buffer, sizeof(buffer) -1, 0);
+        if (number_of_bytes <= 0){
+            strerror(errno);
+            break;
+        }
 
-    pthread_mutex_lock(&mutex);
-    if(pthread_mutex_lock(&mutex) != 0) {
-        syslog(LOG_ERR, "Mutex lock failed");
-        printf("myTime thread lock error\n");
+        buffer[number_of_bytes] = '\0';
+        pthread_mutex_lock(&mutex);
+        FILE = *fp = fopen(FILEPATH, "a+");
+        if (fp){
+            if (fputs(buffer, fp) < 0){
+                strerror(errno);
+            }
+            if (fflush(fp) != 0){
+                strerror(errno);
+            }
+            fclose(fp);
+        }
+        else {
+            strerror(errno);
+        }
+        pthread_mutex_unlock(&mutex);
+
+        pthread_mutex_lock(&mutex);
+        fp = fopen(FILEPATH, "r");
+        if (fp){
+            while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
+                send(new_fd, buffer, number_of_bytes, 0);
+                fclose(fp);
+                close(new_fd);
+                break;
+            }
+            fclose(fp);
+        }
+        pthread_mutex_unlock(&mutex);
+
+        if (strchr(buffer, '\n')){
+            break;
+        }
+        close(new_fd);
+        return NULL;
     }
-    thread_data->status = COMPLETED;
-    pthread_mutex_unlock(&mutex);
-    
-    pthread_exit(NULL);
 }
 
 // Queue
@@ -273,24 +301,9 @@ int main(int argc, char *argv[]){
             continue;
         }
         // This is the broken spot still. I need to replace this part later.
-        pthread_mutex_lock(&mutex);
-        SLIST_INSERT_HEAD(&thread_queue, new_thread, entries);
-        pthread_mutex_unlock(&mutex);
 
-        slist_data_t *iter, *temp;
-        pthread_mutex_lock(&mutex);
-
-        SLIST_FOREACH_SAFE(iter, &thread_queue, entries, temp) {
-            if (iter->status == COMPLETED) {
-                pthread_join(iter->thread_id, NULL);
-                printf("Joining thread %lu\n", (unsigned long) iter->thread_id);
-
-                SLIST_REMOVE(&thread_queue, iter, slist_data_s, entries);
-                free(iter);
-            }
         }
 
-        pthread_mutex_unlock(&mutex);
 
         // Thread to here - This below somehow goes into client thread now. 
         if (!fork()){ 
@@ -310,32 +323,30 @@ int main(int argc, char *argv[]){
             rewind(fp);
             while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
                 send(new_fd, buffer, number_of_bytes, 0);
+                fclose(fp);
+                close(new_fd);
+                break;
             }
 
-            fclose(fp);
-            close(new_fd);
-            exit(0);
+
         }
 
         close(new_fd);
-    }
-
-   
-    close(sockfd);
-    closelog();
-
-    if (caught_sigint) {
-        printf("\nCaught SIGINT, exiting.\n");
-        syslog(LOG_ERR, "Caught SIGINT, exiting.");
+        if (caught_sigint) {
+            printf("\nCaught SIGINT, exiting.\n");
+            syslog(LOG_ERR, "Caught SIGINT, exiting.");
+            remove(FILEPATH);
+        }
+        if (caught_sigterm) {
+            printf("\nCaught SIGTERM, exiting.\n");
+            syslog(LOG_ERR, "Caught SIGTERM, exiting.");
+            remove(FILEPATH);
+        }
+    
+        close(sockfd);
         remove(FILEPATH);
-    }
-    if (caught_sigterm) {
-        printf("\nCaught SIGTERM, exiting.\n");
-        syslog(LOG_ERR, "Caught SIGTERM, exiting.");
-        remove(FILEPATH);
-    }
+        pthread_mutex_destroy(&mutex);
+        closelog();
+        return 0;
 
-    remove(FILEPATH);
-    pthread_mutex_destroy(&mutex);
-    return 0;
-}
+    }
