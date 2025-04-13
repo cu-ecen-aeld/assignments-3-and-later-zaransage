@@ -10,11 +10,11 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <netdb.h>
-#include <sys/wait.h>
-#include <stdbool.h>
 #include <pthread.h>
 #include <time.h>
+#include <stdbool.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #define PORT "9000"
 #define FILEPATH "/var/tmp/aesdsocketdata"
@@ -33,7 +33,7 @@ pthread_mutex_t mutex_for_threads = PTHREAD_MUTEX_INITIALIZER;
 struct linked_list_node {
     pthread_t id;
     struct linked_list_node *next;
-} struct node *thread_list = NULL; // pdf says to start NULL.
+} struct linked_list_node *thread_list = NULL; // pdf says to start NULL.
 
 
 // Signal handler from the book
@@ -93,7 +93,7 @@ void *time_thread(void *data) {
     (void)data;
     while (!caught_sigint && !caught_sigterm){
         pthread_mutex_lock(&mutex_for_files);
-        FILE *fp = fopen(FILEPATH, "a+");
+        FILE *fp = fopen(FILEPATH, "a");
         if (fp) {
             time_t now = time(NULL);
             struct tm *local = localtime(&now);
@@ -121,7 +121,7 @@ void *client_thread(void *data) {
     ssize_t number_of_bytes;
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
-        number_of_bytes = recv(new_fd, buffer, sizeof(buffer) -1, 0);
+        number_of_bytes = recv(new_fd, buffer, 1024 - 1, 0);
         if (number_of_bytes <= 0){
             strerror(errno);
             break;
@@ -129,7 +129,7 @@ void *client_thread(void *data) {
 
         buffer[number_of_bytes] = '\0';
         pthread_mutex_lock(&mutex_for_files);
-        FILE *fp = fopen(FILEPATH, "a+");
+        FILE *fp = fopen(FILEPATH, "a");
         if (fp){
             if (fputs(buffer, fp) < 0){
                 strerror(errno);
@@ -147,7 +147,7 @@ void *client_thread(void *data) {
         pthread_mutex_lock(&mutex_for_files);
         fp = fopen(FILEPATH, "r");
         if (fp){
-            while ((number_of_bytes = fread(buffer, 1, sizeof(buffer), fp)) > 0){
+            while ((number_of_bytes = fread(buffer, 1, 1024, fp)) > 0){
                 if (send(new_fd, buffer, number_of_bytes, 0)){
                     fclose(fp);
                     break;
@@ -168,40 +168,12 @@ void *client_thread(void *data) {
 
 int main(int argc, char *argv[]){
     // Socket handling
-    int sockfd, new_fd;
+    int sockfd;
     struct addrinfo hints, *serverinfo, *p;
-    struct sockaddr_storage connect_addr;
     socklen_t sin_size;
-    char s[INET6_ADDRSTRLEN];
     int yes = 1;
     int rv;
-
-    // Thread handling
-    pthread_t t1;
-    void *res;
-    int s_t;
-    char data;
-
-    // Queue handling
-    // Let me replace with a linked list
-
-    openlog(NULL, 0, LOG_USER);
-
-    /* Right from the material example .. lets try it*/
-
-    memset(&new_action, 0, sizeof(struct sigaction));
-    new_action.sa_handler=signal_handler;
-
-    if(sigaction(SIGTERM, &new_action, NULL) != 0){
-        printf("Error %d (%s) registering for SIGTERM", errno, strerror(errno));
-    }
-
-    if(sigaction(SIGINT, &new_action, NULL)){
-        printf("Error %d (%s) registereing for SIGINT", errno, strerror(errno));
-    }
-
-      /*Lets try some of the forking code from class 2*/
-
+    
     for (int i =1; i < argc; i++){
         if (strcmp(argv[i], "-d") == 0){
             run_as_daemon = true;
@@ -209,29 +181,50 @@ int main(int argc, char *argv[]){
         }
     }
 
-    if (run_as_daemon){
-        pid_t pid;
-            pid = fork();
+    openlog(NULL, 0, LOG_USER);
 
-        if (pid < 0){
-          perror("fork");
-          exit(-1);
+    // Queue handling
+    // Let me replace with a linked list
+    /* Right from the material example .. lets try it*/
+
+    if (run_as_daemon) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            exit(1);
         }
 
-        if (pid > 0){
-            close(STDIN_FILENO);
-            close(STDOUT_FILENO);
-            close(STDERR_FILENO);
-            exit(0); // A thank you to https://github.com/cu-ecen-aeld/assignments-3-and-later-asabbagh4 for this one exit to fix everything.
+        if (pid > 0) {
+            exit(0);
         }
+
         setsid();
+
+        pid_t pid2 = fork();
+
+        if (pid2 < 0) {
+            exit(1);
+        }
+
+        if (pid2 > 0) {
+            exit(0);
+        }
         umask(0);
-        syslog(LOG_DEBUG, "Daemon working")
-    }
+
+        if (chdir("/") != 0) {
+            syslog(LOG_ERR, "chdir failed: %s", strerror(errno));
+        }
+
+      }
 
     /*A horrible smattering of beej.us, Linux Systems Programming and some Googling errors*/
-    struct sigaction new_action;    
+    struct sigaction new_action = {.sa_handler = signal_handler}
+    sigemptyset(&new_action.sa_mask);
 
+    if (sigaction(SIGTERM, &new_action, NULL) != 0){
+        closelog();
+        exit(1);
+    }
 
     // Original socket setup I think will work. Its my threads which are broken...
     memset(&hints, 0, sizeof hints);
@@ -321,19 +314,19 @@ int main(int argc, char *argv[]){
         syslog(LOG_INFO, "Accepted connection from %s", s);
 
         pthread_t client_tid;
-        if (pthread_create(&client_tid, NULL, client_thread, new_thread) != 0) {
+        if (pthread_create(&client_tid, NULL, client_thread, new_fd) != 0) {
             perror("pthread_create");
-            close(*new_thread)
-            free(new_thread);
+            close(*new_fd);
+            free(new_fd);
             continue;
         }
         add_node(client_tid);
         }
         remove_node();
-        close(new_fd);
         close(sockfd);
+        pthread_mutex_destroy(&mutex_for_files);
+        pthread_mutex_destroy(&mutex_for_threads);
         remove(FILEPATH);
-        pthread_mutex_destroy(&mutex);
         closelog();
         return 0;
-    }
+}
