@@ -44,7 +44,6 @@ static void signal_handler(int signal_number){
 // Timer
 // This time, try different thread for time
 
-
 void *time_thread(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
     while (!caught_sigint && !caught_sigterm){
@@ -59,8 +58,12 @@ void *time_thread(void *data) {
         }
         pthread_mutex_unlock(&mutex_for_files);
 
+        struct timespec ts = { .tv_sec = 1, .tv_nsec = 0};
+        while (nanosleep(&ts, &ts) == -1 && errno == EINTR){
+            if (caught_sigint || caught_sigterm) break;
+        }
     }
-    
+
     return NULL;
 }
 
