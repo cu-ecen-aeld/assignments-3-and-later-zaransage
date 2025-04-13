@@ -47,32 +47,21 @@ static void signal_handler(int signal_number){
 
 void *time_thread(void *data) {
     struct shared_thread_data *thread_data = (struct shared_thread_data *)data;  
-    time_t now;
-    time(&now);
+    while (!caught_sigint && !caught_sigterm){
+        pthread_mutex_lock(&mutex_for_files);
+        FILE *fp = fopen(FILEPATH, "a+");
+        if (fp == NULL) {
+            time_t now;
+            struct tm *local = localtime(&now);
+            char buffer[80];
+            strftime(buffer, sizeof(buffer), "timestamp:%a, %d %b %Y %r %z", local);
+            fclose(fp)            
+        }
+        pthread_mutex_unlock(&mutex_for_files);
 
-    struct tm *local = localtime(&now);
-
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "%a %d %b %y %r %z", local);
-
-
-    pthread_mutex_lock(&mutex);
-    if(pthread_mutex_lock(&mutex) != 0) {
-        syslog(LOG_ERR, "Mutex lock failed");
-        printf("myTime thread lock error\n");
-        return;
     }
-    FILE *fp = fopen(FILEPATH, "a+");
-    if (fp == NULL) {
-        perror("Error opening file");
-    pthread_mutex_unlock(&mutex);
-    return;
-    }
-
-    fprintf(fp, "%s\n", buffer);
-    fclose(fp);
-    pthread_mutex_unlock(&mutex);
-
+    
+    return NULL;
 }
 
 // Thread function for the client
