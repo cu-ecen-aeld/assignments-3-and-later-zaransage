@@ -17,41 +17,44 @@
 // Let me try having the buffer determine this.
 
 typedef struct {
-    const char *out;
-    const char *in;
-    size_t buffer[BUFFER];
+    const int *out;
+    const int *in;
+    int buffer[BUFFER];
 } circular_buffer;
 
 
 // So I get the number from the out column
 // Then ask the buffer for that spot.
-void get_data(circular_buffer *data){
-    return circular_buffer->buffer[circular_buffer->out];
+void get_data(circular_buffer *circular_buffer, (*) *data){
+    int out = *circular_buffer->out;
+    circular_buffer->buffer[out] = data;
 }
 
 
 // So I get data and add it.
 // I know the number to insert because the buffer says
-void put_data(circular_buffer *data){
+void put_data(circular_buffer *circular_buffer, (*) *data){
     // take data from outside
     // Insert it into the buffer
     // Increment the 'in' counter by 1
     // Once I get to the size of buffer +1
     // Increment the 'in' counter to first spot in buffer
-
+    int in = *circular_buffer->in
     circular_buffer->buffer[circular_buffer->in] = data;
+    
     circular_buffer->in += 1;
     circular_buffer->out += 1;
 }
 
 
-int main(){
+int main(int argc, char *argv[]){
 
     circular_buffer test_buffer;
 
+    char value_one = "Test 1";
 
-    put_data(&test_buffer,"Test 1");
-    put_data(&test_buffer)
+    put_data(&test_buffer, *value_one);
+    //put_data(&test_buffer);
 
     return 0;
 }
