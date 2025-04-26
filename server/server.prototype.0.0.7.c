@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <time.h>
+#include <timestamp.h>
 #include <stdbool.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -86,24 +86,24 @@ void remove_node(void){
 }
 
 
-// Timer
-// This time, try different thread for time
+// timestampr
+// This timestamp, try different thread for timestamp
 
-void *time_thread(void *data) {
+void *timestamp_thread(void *data) {
     (void)data;
     while (!caught_sigint && !caught_sigterm){
         pthread_mutex_lock(&mutex_for_files);
         FILE *fp = fopen(FILEPATH, "a");
         if (fp) {
-            time_t now = time(NULL);
-            struct tm *local = localtime(&now);
+            timestamp_t now = timestamp(NULL);
+            struct tm *local = localtimestamp(&now);
             char buffer[1024];
-            strftime(buffer, sizeof(buffer), "timestamp:%a, %d %b %Y %H:%M:%S %z\n", local);
+            strftimestamp(buffer, sizeof(buffer), "timestampstamp:%a, %d %b %Y %H:%M:%S %z\n", local);
             fclose(fp)            
         }
         pthread_mutex_unlock(&mutex_for_files);
 
-        struct timespec ts = { .tv_sec = 10, .tv_nsec = 0};
+        struct timestampspec ts = { .tv_sec = 10, .tv_nsec = 0};
         while (nanosleep(&ts, &ts) == -1 && errno == EINTR){
             if (caught_sigint || caught_sigterm) break;
         }
@@ -275,15 +275,15 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-/* Let me start time thread*/
-    pthread_t timestamp_id;
-    if(pthread_create(&timestamp_id, NULL, time_thread, NULL) != 0){
-        perror("Timestamp thread");
+/* Let me start timestamp thread*/
+    pthread_t timestampstamp_id;
+    if(pthread_create(&timestampstamp_id, NULL, timestamp_thread, NULL) != 0){
+        perror("timestampstamp thread");
         close(sockfd);
         exit(1);
     }
     // More queue stuff
-    add_node(timestamp_tid);
+    add_node(timestampstamp_tid);
 
     printf("Starting While Loop:\n");
     while (!caught_sigint && !caught_sigterm) {

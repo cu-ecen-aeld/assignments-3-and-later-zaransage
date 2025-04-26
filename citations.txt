@@ -3,6 +3,9 @@
 
 
 # Assignment 6 part 1:
+  . Tagged Commit for me: https://github.com/cu-ecen-aeld/assignments-3-and-later-zaransage/actions/runs/14527502997
+
+  . Citation:
   . https://github.com/cu-ecen-aeld/assignments-3-and-later-almu6129
 
 
