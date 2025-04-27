@@ -16,19 +16,6 @@
  
  #include "aesd-circular-buffer.h"
  
-// int BUFFER_SIZE = 10;
-
-// // I may typedef this.
-//struct buffer {
-//    char *buffer[BUFFER_SIZE];
-//    size_t add_entry;
-//    size_t in_offs;
-//    size_t out_offs;
-//    size_t char_offset;
-//    size_t entry_offset_byte_rtn;
-//
-//} aesd_circular_buffer;
-//
 //
  /**
   * @param buffer the buffer to search for corresponding offset.  Any necessary locking must be performed by caller.
@@ -45,6 +32,24 @@
      /**
      * TODO: implement per description
      */
+
+     // I get all elements of buffer
+     // buffer
+     //  . buffer_entry
+     //    . pointer (called *buffptr)
+     //    . size
+
+     //  . in_offs
+     //  . out_offs
+     //  . full 
+
+
+     // I get a single value of the char offset
+     // char_offset
+
+     // I get a single value of the entry offset
+     // entry_offset_byte_rtn
+
      return NULL;
  }
  
@@ -61,12 +66,41 @@
      * TODO: implement per description
      */
 
+     // I get all elements of buffer
+     // buffer
+     //  . buffer_entry
+     //    . pointer (called *buffptr) entry[]
+     //    . size
+
+     //  . in_offs
+     //  . out_offs
+     //  . full 
+
+     // I get a single value of the char offset
+     // char_offset
+
+     // I get a single value of the entry offset
+     // entry_offset_byte_rtn
+
+     // add_entry
+     //  . pointer
+     //  . size
+
+
      // Take the data and add it into a location of the array.
      // Note that I did this by incremeting the buffer by 1.
-    
-     buffer[buffer->in_offs] = add_entry->buffptr; // I do not think I have the total structure used right.
-     buffer->in_offs++;
 
+     // Take data from buffer entry and add to circular buffer
+     buffer->buffer_entry.buffptr = add_entry->buffptr;
+     buffer->buffer_entry.size = add_entry->size;
+
+     // Now lets see if we can pick a spot in entry add the pointer.
+
+     buffer->entry[in_offs] = add_entry->buffptr;
+     in_offs++;
+
+     // I still need to make sure I handle the ins and outs offsets.
+     // Need more logic after than to handle incrementation and full buffer.
  }
  
  /**
