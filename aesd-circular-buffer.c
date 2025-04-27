@@ -64,7 +64,7 @@
      // Take the data and add it into a location of the array.
      // Note that I did this by incremeting the buffer by 1.
     
-     buffer[buffer->in_offs] = add_entry->buffptr;
+     buffer[buffer->in_offs] = add_entry->buffptr; // I do not think I have the total structure used right.
      buffer->in_offs++;
 
  }
