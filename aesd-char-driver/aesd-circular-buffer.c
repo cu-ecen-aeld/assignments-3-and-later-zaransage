@@ -45,12 +45,33 @@
      //  . out_offs
      //  . full 
 
+     // If I do not have the provided offset, just return NULL
+     // This says if I have nothing in the location being asked for, return NULL (Need to test this more)
+     if ( sizeof(buffer->entry[char_offset]) == 0 ){
+        return NULL;
+     }
 
-     // I get a single value of the char offset
-     // char_offset
+    // I might have to handle a condition if the offset is bigger than the whole buffer...
+    // For later if needed...
 
-     // I get a single value of the entry offset
-     // entry_offset_byte_rtn
+     // Get the actual bufferptf from the cell in the buffer itself, specified by the char offset.
+     struct aesd_buffer_entry entry = buffer->entry[char_offset];
+
+     //Somehow, read into the returned bufferptr at the position given by entry_offset_byte_rtn
+     const char *ptr = entry.buffptr;
+
+     // If I somehow do not have a pointer in the substring, return NULL.
+     if ( !ptr ) {
+        return NULL;
+     }
+
+     //Let me try and remap the result of the offset to a new return value
+     return (size_t) ptr[entry_offset_byte_rtn];
+
+     // Do not know yet if I want this check below
+     //if (sizeof(buffer_value_returned) > 0){
+     //   return buffer_value_returned;
+     //}
 
      return NULL;
  }
@@ -67,26 +88,6 @@
      /**
      * TODO: implement per description
      */
-
-     // I get all elements of buffer
-     // buffer
-     //  . buffer_entry
-     //    . pointer (called *buffptr) entry[]
-     //    . size
-
-     //  . in_offs
-     //  . out_offs
-     //  . full 
-
-     // I get a single value of the char offset
-     // char_offset
-
-     // I get a single value of the entry offset
-     // entry_offset_byte_rtn
-
-     // add_entry
-     //  . pointer
-     //  . size
 
      int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
@@ -108,7 +109,7 @@
      printf("Current in offset for buffer is: %d\n", buffer->in_offs);
      printf("Current out offset for buffer is: %d\n", buffer->out_offs);
      printf("Current size of the buffer is: %i\n", buffer_size);
-     printf("Current value of buffer entry is: %i\n", buffer->entry[0]);
+     //printf("Current value of buffer entry is: %i\n", buffer->entry[0]);
 
 
 
@@ -153,13 +154,21 @@
     printf("Char %c at offset %d.\n", entry->buffptr[offset], offset);
 
     // Add entry to buffer
-
     aesd_circular_buffer_add_entry(myBuffer, entry);
 
+    // Position find entry offset
+
+    size_t char_offset = 1;
+    size_t *entry_offset_byte_rtn = 1504219302;
+
+    //struct aesd_circular_buffer_find_entry_offset_for_fpos *my_offset_fpos = malloc(sizeof(struct aesd_circular_buffer_find_entry_offset_for_fpos));
+
+    aesd_circular_buffer_find_entry_offset_for_fpos(myBuffer, char_offset, entry_offset_byte_rtn);
 
     // Free Struct Memory from Heap
     free(entry);
     free(myBuffer);
+    //free(my_offset_fpos);
     return 0;
 
  }
