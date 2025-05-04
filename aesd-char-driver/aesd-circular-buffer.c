@@ -15,7 +15,9 @@
  #endif
  
  #include "aesd-circular-buffer.h"
- 
+ #include <stdlib.h>
+ #include <stdio.h>
+
 //
  /**
   * @param buffer the buffer to search for corresponding offset.  Any necessary locking must be performed by caller.
@@ -91,13 +93,13 @@
      // Note that I did this by incremeting the buffer by 1.
 
      // Take data from buffer entry and add to circular buffer
-     buffer->buffer_entry.buffptr = add_entry->buffptr;
-     buffer->buffer_entry.size = add_entry->size;
+     //buffer->buffer_entry.buffptr = add_entry->buffptr;
+     //buffer->buffer_entry.size = add_entry->size;
 
      // Now lets see if we can pick a spot in entry add the pointer.
 
-     buffer->entry[in_offs] = add_entry->buffptr;
-     in_offs++;
+     //buffer->entry[in_offs] = add_entry->buffptr;
+     //in_offs++;
 
      // I still need to make sure I handle the ins and outs offsets.
      // Need more logic after than to handle incrementation and full buffer.
@@ -113,8 +115,29 @@
 
 
  int main(){
-    
 
+    // Initialize my buffer
+    //myBuffer = aesd_circular_buffer;
+
+    // init said buffer
+    //aesd_circular_buffer_init(*myBuffer);
+
+    // Set up an entry
+    // Probably inside the funtion
+
+    char *data = "Dirka";
+
+    struct aesd_buffer_entry *entry = malloc(sizeof(struct aesd_buffer_entry));
+    entry->buffptr = data;
+    entry->size = sizeof(data);
+
+    printf("%s, %ld", entry->buffptr, entry->size);
+
+    // Add entry to buffer
+
+
+    // Free Struct Memory from Heap
+    free(entry);
     return 0;
 
  }
