@@ -131,13 +131,20 @@
     entry->buffptr = data;
     entry->size = sizeof(data);
 
-    printf("%s, %ld", entry->buffptr, entry->size);
+    printf("%s, %ld\n", entry->buffptr, entry->size);
+
+    //return a position
+
+    int offset = 4;
+
+    printf("Char %c at offset %d.\n", entry->buffptr[offset], offset);
+
+    free(entry);
 
     // Add entry to buffer
 
 
     // Free Struct Memory from Heap
-    free(entry);
     return 0;
 
  }
