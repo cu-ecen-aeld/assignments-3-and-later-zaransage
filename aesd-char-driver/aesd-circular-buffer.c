@@ -88,31 +88,19 @@
      //  . pointer
      //  . size
 
-
-     // Take the data and add it into a location of the array.
-     // Note that I did this by incremeting the buffer by 1.
-
-     // Take data from buffer entry and add to circular buffer
-     //buffer->buffer_entry.buffptr = add_entry->buffptr;
-     //buffer->buffer_entry.size = add_entry->size;
-
-     // Now lets see if we can pick a spot in entry add the pointer.
-
-     //buffer->entry[in_offs] = add_entry->buffptr;
-     //in_offs++;
-
-     // I still need to make sure I handle the ins and outs offsets.
-     // Need more logic after than to handle incrementation and full buffer.
-
      int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
-     if ( buffer->in_offs ==  buffer_size){
+     if ( (buffer->in_offs + 1) >  buffer_size){
         buffer->in_offs = 0;
      }
 
-     //if ( buffer->in_offs == buffer->in_offs){
-     //
-     //}
+     if ( buffer->out_offs == buffer->in_offs && sizeof(buffer->out_offs) && sizeof(buffer->in_offs) == 0){
+        buffer->full = false;
+     }
+
+     if ( buffer->out_offs = (buffer->in_offs -1) ){
+        buffer->full = true;
+     }
 
      buffer->entry[buffer->in_offs] = *add_entry;
      buffer->in_offs++;
@@ -133,6 +121,8 @@
  {
      memset(buffer,0,sizeof(struct aesd_circular_buffer));
  }
+
+
 
 
  int main(){
