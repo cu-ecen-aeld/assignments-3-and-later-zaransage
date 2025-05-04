@@ -103,6 +103,27 @@
 
      // I still need to make sure I handle the ins and outs offsets.
      // Need more logic after than to handle incrementation and full buffer.
+
+     int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
+
+     if ( buffer->in_offs ==  buffer_size){
+        buffer->in_offs = 0;
+     }
+
+     //if ( buffer->in_offs == buffer->in_offs){
+     //
+     //}
+
+     buffer->entry[buffer->in_offs] = *add_entry;
+     buffer->in_offs++;
+
+     printf("Current in offset for buffer is: %d\n", buffer->in_offs);
+     printf("Current out offset for buffer is: %d\n", buffer->out_offs);
+     printf("Current size of the buffer is: %i\n", buffer_size);
+     printf("Current value of buffer entry is: %i\n", buffer->entry[0]);
+
+
+
  }
  
  /**
@@ -117,19 +138,21 @@
  int main(){
 
     // Initialize my buffer
-    //myBuffer = aesd_circular_buffer;
+    struct aesd_circular_buffer *myBuffer = malloc(sizeof(struct aesd_circular_buffer)); 
 
     // init said buffer
-    //aesd_circular_buffer_init(*myBuffer);
+    aesd_circular_buffer_init(myBuffer);
 
     // Set up an entry
     // Probably inside the funtion
 
     char *data = "Dirka";
 
+    // This is really the init of the data block
     struct aesd_buffer_entry *entry = malloc(sizeof(struct aesd_buffer_entry));
     entry->buffptr = data;
     entry->size = sizeof(data);
+    // The data block init stops here
 
     printf("%s, %ld\n", entry->buffptr, entry->size);
 
@@ -139,12 +162,14 @@
 
     printf("Char %c at offset %d.\n", entry->buffptr[offset], offset);
 
-    free(entry);
-
     // Add entry to buffer
+
+    aesd_circular_buffer_add_entry(myBuffer, entry);
 
 
     // Free Struct Memory from Heap
+    free(entry);
+    free(myBuffer);
     return 0;
 
  }
