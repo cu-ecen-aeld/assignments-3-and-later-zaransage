@@ -64,16 +64,25 @@
      // Placeholder
 
      // I somehow need total value savailable and I wonder if I need that size math...
-     // Placeholder
+     int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
 
      // for every entry in the buffer, give me the nth entry
      // Placeholder
 
+     for (size_t i = 0; i < buffer_size; i++){
+      struct aesd_buffer_entry *entry = &buffer->entry[buffer->out_offs];
+
+      if (!entry->buffptr || entry->size == 0){
+         return NULL;
+      }
+
      // Get the actual bufferptf from the cell in the buffer itself, specified by the char offset.
 
      //Somehow, read into the returned bufferptr at the position given by entry_offset_byte_rtn
      // Placeholder
+
+     }
 
      return NULL;
  }
@@ -93,11 +102,11 @@
 
      // Check for parts being satisfied
      if (!buffer){
-        return;
+      return;
      }
 
      if (!add_entry){
-       return;
+      return;
      }
 
      if (!add_entry->buffptr){
@@ -122,8 +131,6 @@
      buffer->entry[buffer->in_offs] = *add_entry;
      buffer->in_offs++;
 
-     
-
      printf("Current in offset for buffer is: %d\n", buffer->in_offs);
      printf("Current out offset for buffer is: %d\n", buffer->out_offs);
      printf("Current size of the buffer is: %i\n", buffer_size);
@@ -142,9 +149,6 @@
 
      memset(buffer,0,sizeof(struct aesd_circular_buffer));
  }
-
-
-
 
  int main(){
 
@@ -180,8 +184,6 @@
 
     size_t char_offset = 1;
     size_t *entry_offset_byte_rtn;
-
-    //struct aesd_circular_buffer_find_entry_offset_for_fpos *my_offset_fpos = malloc(sizeof(struct aesd_circular_buffer_find_entry_offset_for_fpos));
 
     aesd_circular_buffer_find_entry_offset_for_fpos(myBuffer, char_offset, entry_offset_byte_rtn);
 
