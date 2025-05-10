@@ -45,35 +45,35 @@
      //  . out_offs
      //  . full 
 
-       // If I somehow do not have a pointr or buffer or offset, return null
-       if ( !buffer->buffer_entry->buffptr || !buffer || !entry_offset_byte_rtn) {
-         return NULL;
-      } 
-
-     // If I do not have the provided offset, just return NULL
-     // This says if I have nothing in the location being asked for, return NULL (Need to test this more)
-     // I think I need work on this.
-     if ( sizeof(buffer->entry[char_offset]) == 0 ){
-        return NULL;
+     // Check for inputs
+     if (!buffer) {
+      return NULL;
      }
 
-     // Check for empty
+     if (!entry_offset_byte_rtn){
+      return NULL;
+     }
+
+     // Okay, is the buffer empty...
+     // Check for empty - I might wanto to break these up.
      if (!buffer->full && buffer->in_offs == buffer->out_offs) {
         return NULL;
      }
 
-    // I might have to handle a condition if the offset is bigger than the whole buffer...
-    // For later if needed...
+     // Okay I need to get the oldest starting point from buff-out_offs.
+     // Placeholder
+
+     // I somehow need total value savailable and I wonder if I need that size math...
+     // Placeholder
+
+
+     // for every entry in the buffer, give me the nth entry
+     // Placeholder
 
      // Get the actual bufferptf from the cell in the buffer itself, specified by the char offset.
-     struct aesd_buffer_entry entry = buffer->entry[char_offset];
 
      //Somehow, read into the returned bufferptr at the position given by entry_offset_byte_rtn
-     const char *ptr = entry.buffptr;
-
-   
-     //Let me try and remap the result of the offset to a new return value
-     return (size_t) ptr[entry_offset_byte_rtn];
+     // Placeholder
 
      return NULL;
  }
@@ -91,29 +91,42 @@
      * TODO: implement per description
      */
 
+     // Check for parts being satisfied
+     if (!buffer){
+        return;
+     }
+
+     if (!add_entry){
+       return;
+     }
+
+     if (!add_entry->buffptr){
+      return;
+     }
+
+     // I wonder if I can use this to avoid modulous
+     // I may not need this actually
      int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
-     if ( (buffer->in_offs + 1) >  buffer_size){
-        buffer->in_offs = 0;
-     }
-
-     if ( buffer->out_offs == buffer->in_offs && sizeof(buffer->out_offs) && sizeof(buffer->in_offs) == 0){
-        buffer->full = false;
-     }
-
-     if ( buffer->out_offs = (buffer->in_offs -1) ){
+     // What about if we are already full?
+     if ( buffer->out_offs == (buffer->in_offs) ){
         buffer->full = true;
      }
 
+     // Now lets see about advancing this by using the size of the array
+     if ( (buffer->in_offs + 1) >=  buffer_size){
+      buffer->in_offs = 0;
+   }
+
+     // Add the entry
      buffer->entry[buffer->in_offs] = *add_entry;
      buffer->in_offs++;
+
+     
 
      printf("Current in offset for buffer is: %d\n", buffer->in_offs);
      printf("Current out offset for buffer is: %d\n", buffer->out_offs);
      printf("Current size of the buffer is: %i\n", buffer_size);
-     //printf("Current value of buffer entry is: %i\n", buffer->entry[0]);
-
-
 
  }
  
@@ -122,6 +135,11 @@
  */
  void aesd_circular_buffer_init(struct aesd_circular_buffer *buffer)
  {
+     // Check a condition where somehow I do not have a buffer...
+     if (!buffer){
+      return;
+     }
+
      memset(buffer,0,sizeof(struct aesd_circular_buffer));
  }
 
@@ -144,7 +162,7 @@
     // This is really the init of the data block
     struct aesd_buffer_entry *entry = malloc(sizeof(struct aesd_buffer_entry));
     entry->buffptr = data;
-    entry->size = sizeof(data);
+    entry->size = strlen(data);
     // The data block init stops here
 
     printf("%s, %ld\n", entry->buffptr, entry->size);
@@ -161,7 +179,7 @@
     // Position find entry offset
 
     size_t char_offset = 1;
-    size_t *entry_offset_byte_rtn = 1504219302;
+    size_t *entry_offset_byte_rtn;
 
     //struct aesd_circular_buffer_find_entry_offset_for_fpos *my_offset_fpos = malloc(sizeof(struct aesd_circular_buffer_find_entry_offset_for_fpos));
 
