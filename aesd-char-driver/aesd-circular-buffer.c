@@ -60,8 +60,9 @@
         return NULL;
      }
 
-     // Okay I need to get the oldest starting point from buff-out_offs.
-     // Placeholder
+     // I need something to hold the place of our offset in the loop...
+
+     size_t my_new_offset = 0;
 
      // I somehow need total value savailable and I wonder if I need that size math...
      int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
@@ -78,9 +79,24 @@
       }
 
      // Get the actual bufferptf from the cell in the buffer itself, specified by the char offset.
+     // char_offset is 5 and my_new_offset is 5
+     // or
+     // char_offset is less than my_new_offset at 5
+     // Something something darkside ...
+     // entry->size ..... lets say equals 2 oh! Equals 1.
+     // if char_offset is 5 and my_new_offset is 5 and my char_offset is less than 5 + 1 
 
-     //Somehow, read into the returned bufferptr at the position given by entry_offset_byte_rtn
-     // Placeholder
+     // Then I would say starting at my char_offset until my_new_offset and my_new_offset is less than the entry size
+     // I should be in the boundary of the memory space I can read if I delta the results.
+
+     if (char_offset >= my_new_offset && char_offset < (my_new_offset + entry->size)){
+        *entry_offset_byte_rtn = (char_offset - my_new_offset);
+        return entry;
+     }
+
+     // I might be stuck with modulus if my other ideas do not work.     
+     my_new_offset += entry->size;
+     buffer->out_offs = (buffer->out_offs + 1) % buffer_size; 
 
      }
 
@@ -148,49 +164,4 @@
      }
 
      memset(buffer,0,sizeof(struct aesd_circular_buffer));
- }
-
- int main(){
-
-    // Initialize my buffer
-    struct aesd_circular_buffer *myBuffer = malloc(sizeof(struct aesd_circular_buffer)); 
-
-    // init said buffer
-    aesd_circular_buffer_init(myBuffer);
-
-    // Set up an entry
-    // Probably inside the funtion
-
-    char *data = "Dirka";
-
-    // This is really the init of the data block
-    struct aesd_buffer_entry *entry = malloc(sizeof(struct aesd_buffer_entry));
-    entry->buffptr = data;
-    entry->size = strlen(data);
-    // The data block init stops here
-
-    printf("%s, %ld\n", entry->buffptr, entry->size);
-
-    //return a position
-
-    int offset = 4;
-
-    printf("Char %c at offset %d.\n", entry->buffptr[offset], offset);
-
-    // Add entry to buffer
-    aesd_circular_buffer_add_entry(myBuffer, entry);
-
-    // Position find entry offset
-
-    size_t char_offset = 1;
-    size_t *entry_offset_byte_rtn;
-
-    aesd_circular_buffer_find_entry_offset_for_fpos(myBuffer, char_offset, entry_offset_byte_rtn);
-
-    // Free Struct Memory from Heap
-    free(entry);
-    free(myBuffer);
-    //free(my_offset_fpos);
-    return 0;
-
  }
