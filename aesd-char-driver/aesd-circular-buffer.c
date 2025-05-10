@@ -45,9 +45,20 @@
      //  . out_offs
      //  . full 
 
+       // If I somehow do not have a pointr or buffer or offset, return null
+       if ( !buffer->buffer_entry->buffptr || !buffer || !entry_offset_byte_rtn) {
+         return NULL;
+      } 
+
      // If I do not have the provided offset, just return NULL
      // This says if I have nothing in the location being asked for, return NULL (Need to test this more)
+     // I think I need work on this.
      if ( sizeof(buffer->entry[char_offset]) == 0 ){
+        return NULL;
+     }
+
+     // Check for empty
+     if (!buffer->full && buffer->in_offs == buffer->out_offs) {
         return NULL;
      }
 
@@ -60,18 +71,9 @@
      //Somehow, read into the returned bufferptr at the position given by entry_offset_byte_rtn
      const char *ptr = entry.buffptr;
 
-     // If I somehow do not have a pointer in the substring, return NULL.
-     if ( !ptr ) {
-        return NULL;
-     }
-
+   
      //Let me try and remap the result of the offset to a new return value
      return (size_t) ptr[entry_offset_byte_rtn];
-
-     // Do not know yet if I want this check below
-     //if (sizeof(buffer_value_returned) > 0){
-     //   return buffer_value_returned;
-     //}
 
      return NULL;
  }
