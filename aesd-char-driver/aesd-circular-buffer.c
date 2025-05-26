@@ -129,28 +129,24 @@
       return;
      }
 
-     // I wonder if I can use this to avoid modulous
-     // I may not need this actually
+     // Let me get the size for my later modulus
      int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
-     // What about if we are already full?
-     if ( buffer->out_offs == (buffer->in_offs) ){
-        buffer->full = true;
-     }
 
-     // Now lets see about advancing this by using the size of the array
-     if ( (buffer->in_offs + 1) >=  buffer_size){
-      buffer->in_offs = 0;
-   }
+     // What about if we are already full?
+     // I may have to break this into two
+     if ( buffer->full && buffer->in_offs == buffer->out_offs){
+      buffer->out_offs = (buffer->out_offs +1) % buffer_size;  
+     }
 
      // Add the entry
      buffer->entry[buffer->in_offs] = *add_entry;
-     buffer->in_offs++;
 
-     // Set new reader position
-     if (buffer->full == true) {
-      buffer->out_offs = (buffer->out_offs +1) % buffer_size;
-     }
+     // Now lets see about advancing this by using the size of the array
+     buffer->in_offs = (buffer->in_offs +1) % buffer_size;
+
+     // Separate check for buffer full status
+     buffer->full = (buffer->in_offs == buffer->out_offs);
 
      printf("Current in offset for buffer is: %d\n", buffer->in_offs);
      printf("Current out offset for buffer is: %d\n", buffer->out_offs);
