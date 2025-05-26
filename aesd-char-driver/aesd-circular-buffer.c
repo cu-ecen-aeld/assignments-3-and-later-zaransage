@@ -84,7 +84,7 @@
      // char_offset is less than my_new_offset at 5
      // Something something darkside ...
      // entry->size ..... lets say equals 2 oh! Equals 1.
-     // if char_offset is 5 and my_new_offset is 5 and my char_offset is less than 5 + 1 
+     // if char_offset is 5 and my_new_offset is 5 and my char_offset is less than 5 + 1 (or maybe entry size)
 
      // Then I would say starting at my char_offset until my_new_offset and my_new_offset is less than the entry size
      // I should be in the boundary of the memory space I can read if I delta the results.
@@ -146,6 +146,11 @@
      // Add the entry
      buffer->entry[buffer->in_offs] = *add_entry;
      buffer->in_offs++;
+
+     // Set new reader position
+     if (buffer->full == true) {
+      buffer->out_offs = (buffer->out_offs +1) % buffer_size;
+     }
 
      printf("Current in offset for buffer is: %d\n", buffer->in_offs);
      printf("Current out offset for buffer is: %d\n", buffer->out_offs);
