@@ -1,0 +1,18 @@
+# Dana Marble
+# Citations for specific assignments
+
+# Assignment 7 part 1:
+  . https://www.youtube.com/watch?v=uvD9_Wdtjtw
+  . https://docs.kernel.org/core-api/circular-buffers.html
+  . https://embedjournal.com/implementing-circular-buffer-embedded-c/
+
+
+# Assignment 6 part 1:
+  . Tagged Commit for me: https://github.com/cu-ecen-aeld/assignments-3-and-later-zaransage/actions/runs/14527502997
+
+  . Citation:
+  . https://github.com/cu-ecen-aeld/assignments-3-and-later-almu6129
+
+
+# Assignment 5 part 2:
+  . 

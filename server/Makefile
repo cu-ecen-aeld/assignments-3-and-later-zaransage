@@ -1,20 +1,25 @@
 # I need to update some of these to be optional, I need to create an all stage, add ld and cc flags ... yocto wants a lot.
-GCC := gcc
-CROSS_COMPILE := aarch64-none-linux-gnu-
-SOURCE := aesdsocket.c
-TARGET := aesdsocket
-CFLAGS := -pthread
+CC ?= aarch64-none-linux-gnu-
+GCC ?= gcc
+SOURCE ?= aesdsocket.c
+TARGET ?= aesdsocket
+CFLAGS ?= -pthread
+LDFLAGS ?=
 
 PREFIX ?= /usr/local
 DESTDIR ?= 
 INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
 
+# Might be needed for Yocto
+all:
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
+
 default:
-	$(GCC) $(SOURCE) -o $(TARGET) $(CFLAGS)
+	$(GCC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
 
 # Cross compile
 cross_compile:
-	$(CROSS_COMPILE)gcc $(SOURCE) -o $(TARGET) $(CFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
 
 # Clean
 clean:
