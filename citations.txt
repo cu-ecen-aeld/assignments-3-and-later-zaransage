@@ -2,7 +2,9 @@
 # Citations for specific assignments
 
 # Assignment 7 part 1:
-  . 
+  . https://www.youtube.com/watch?v=uvD9_Wdtjtw
+  . https://docs.kernel.org/core-api/circular-buffers.html
+  . https://embedjournal.com/implementing-circular-buffer-embedded-c/
 
 
 # Assignment 6 part 1:
