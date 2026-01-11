@@ -6,7 +6,7 @@
 
 #include "aesd-circular-buffer.h"
 #include "aesd-circular-buffer.c"
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <stdio.h>
 
 int main(){
