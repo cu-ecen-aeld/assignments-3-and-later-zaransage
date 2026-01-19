@@ -17,7 +17,10 @@
 #include <sys/stat.h>
 
 #define PORT "9000"
+
+#ifndef FILEPATH
 #define FILEPATH "/var/tmp/aesdsocketdata"
+#endif
 
 volatile sig_atomic_t caught_sigint = 0;
 volatile sig_atomic_t caught_sigterm = 0;
