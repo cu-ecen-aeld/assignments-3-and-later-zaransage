@@ -318,6 +318,8 @@ int main(int argc, char *argv[]) {
     }
     syslog(LOG_INFO, "Server listening on port %s", PORT);
 
+    // I need to update this to only work if I have specific values passed during compile time.
+    #ifndef USE_AESD_CHAR_DEVICE
     pthread_t timestamp_tid;
     syslog(LOG_DEBUG, "Creating timestamp thread");
     if (pthread_create(&timestamp_tid, NULL, timestamp_thread, NULL) != 0) {
@@ -328,6 +330,10 @@ int main(int argc, char *argv[]) {
     }
     add_node(timestamp_tid);
     syslog(LOG_DEBUG, "Timestamp thread created");
+    
+    #else
+    syslog(LOG_DEBUG, "USE_AESD_CHAR_DEVICE set to 1 - Disabling timestamps");
+    #endif
 
     while (!caught_sigint && !caught_sigterm) {
         struct sockaddr_storage connect_addr;
@@ -376,9 +382,15 @@ int main(int argc, char *argv[]) {
     close(sockfd);
     pthread_mutex_destroy(&mutex_for_files);
     pthread_mutex_destroy(&mutex_for_threads);
+
+    // I need to update this to account for not removing the file path if specific compile flags are added
+    #ifndef USE_AESD_CHAR_DEVICE
     if (remove(FILEPATH) != 0 && errno != ENOENT) {
         syslog(LOG_ERR, "Failed to remove %s: %s", FILEPATH, strerror(errno));
     }
+
+    #endif
+    
     closelog();
     return 0;
 }

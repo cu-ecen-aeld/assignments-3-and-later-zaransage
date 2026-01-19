@@ -30,7 +30,7 @@ cross_compile:
 
 # Clean
 clean:
-	rm -rf *.o *.elf *.bin *.s $(TARGET)
+	rm -rf *.o *.elf *.bin *.s aesdsocket $(TARGET)
 
 # I need to change this for Yocto
 install:
