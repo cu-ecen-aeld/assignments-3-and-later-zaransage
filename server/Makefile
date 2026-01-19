@@ -6,6 +6,8 @@ TARGET ?= aesdsocket
 CFLAGS ?= -pthread
 LDFLAGS ?=
 
+CPPFLAGS ?=
+
 PREFIX ?= /usr/local
 DESTDIR ?= 
 INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
@@ -13,8 +15,12 @@ INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
 # Update to let me choose a new path for the file location for assignment 8+
 FILEPATH ?= /var/tmp/aesdsocketdata
 
+# Need to default this for the assignment 8
+USE_AESD_CHAR_DEVICE ?= 1
+
 ifeq ($(USE_AESD_CHAR_DEVICE), 1)
     FILEPATH := /dev/aesdchar
+	CPPFLAGS += -DUSE_AESD_CHAR_DEVICE
 endif
 
 # Might be needed for Yocto

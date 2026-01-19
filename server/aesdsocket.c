@@ -388,7 +388,6 @@ int main(int argc, char *argv[]) {
     if (remove(FILEPATH) != 0 && errno != ENOENT) {
         syslog(LOG_ERR, "Failed to remove %s: %s", FILEPATH, strerror(errno));
     }
-
     #endif
     
     closelog();
