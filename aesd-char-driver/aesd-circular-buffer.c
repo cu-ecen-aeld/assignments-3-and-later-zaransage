@@ -15,8 +15,6 @@
  #endif
  
  #include "aesd-circular-buffer.h"
- #include <stdlib.h>
- #include <stdio.h>
 
 //
  /**
@@ -41,6 +39,14 @@
      //  . out_offs
      //  . full 
 
+      // I need something to hold the place of our offset in the loop...
+     size_t my_new_offset;
+     size_t buffer_size;
+     size_t my_entry_check;
+     size_t entry_position;
+     size_t i;
+
+
      // Check for inputs
      if (!buffer) {
       return NULL;
@@ -50,28 +56,24 @@
       return NULL;
      }
 
-     // Okay, is the buffer empty...
-     if (!buffer->full) {
-        return NULL;
-     }
-
      // I need something to hold the place of our offset in the loop...
-     size_t my_new_offset = 0;
+     my_new_offset = 0;
 
      // I somehow need total value savailable and I wonder if I need that size math...
-     size_t buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
+     buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
      
      // See if this error is a result of changes in buffer size: ( I dont want to use stdbool.h)
      // I read that kernel development hates that and so now I will try ternary.
 
-    size_t my_entry_check = buffer->full ? buffer_size : buffer->in_offs;
+    my_entry_check = buffer->full ? buffer_size : buffer->in_offs;
 
     // for every entry in the buffer, give me the nth entry
-    size_t entry_position = buffer->out_offs;
-    for (size_t i = 0; i < my_entry_check; i++){
+    entry_position = buffer->out_offs;
+
+    for (i = 0; i < my_entry_check; i++){
      struct aesd_buffer_entry *entry = &buffer->entry[entry_position];
      if (!entry->buffptr || entry->size == 0){
-        return NULL;
+        break;
      }
 
      if (char_offset >= my_new_offset && char_offset < (my_new_offset + entry->size)){
@@ -101,6 +103,8 @@
      * TODO: implement per description
      */
 
+     size_t buffer_size;
+
      // Check for parts being satisfied
      if (!buffer){
       return;
@@ -115,7 +119,7 @@
      }
 
      // Let me get the size for my later modulus
-     int buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
+     buffer_size = sizeof(buffer->entry) / sizeof(buffer->entry[0]);
 
      // What about if we are already full?
      // I may have to break this into two
