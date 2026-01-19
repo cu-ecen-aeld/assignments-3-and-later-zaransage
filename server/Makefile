@@ -10,6 +10,9 @@ PREFIX ?= /usr/local
 DESTDIR ?= 
 INSTALLDIR := $(DESTDIR)$(PREFIX)/bin
 
+# Update to let me choose a new path for the file location for assignment 8+
+FILEPATH ?= /var/tmp/aesdsocketdata
+
 # Might be needed for Yocto
 all:
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
