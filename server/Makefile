@@ -25,14 +25,14 @@ endif
 
 # Might be needed for Yocto
 all:
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
 
 default:
-	$(GCC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
+	$(GCC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
 
 # Cross compile
 cross_compile:
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) $(SOURCE) -o $(TARGET) 
 
 # Clean
 clean:
