@@ -18,8 +18,12 @@
 
 #define PORT "9000"
 
-#ifndef FILEPATH
-#define FILEPATH "/var/tmp/aesdsocketdata"
+#ifdef USE_AESD_CHAR_DEVICE                                                                                                                                                                             
+      #define FILEPATH "/dev/aesdchar"
+#else                                                                                                                                                                                                   
+    #ifndef FILEPATH                                                                                                                                                                                  
+      #define FILEPATH "/var/tmp/aesdsocketdata"
+    #endif                                                                                                                                                                                              
 #endif
 
 volatile sig_atomic_t caught_sigint = 0;
