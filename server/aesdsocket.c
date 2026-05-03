@@ -247,7 +247,12 @@ int main(int argc, char *argv[]) {
         int dev_null = open("/dev/null", O_RDWR);
         if (dev_null < 0) {
             syslog(LOG_ERR, "Failed to open /dev/null: %s", strerror(errno));
-        } 
+        }else{
+            dup2(dev_null, STDIN_FILENO);
+            dup2(dev_null, STDOUT_FILENO);
+            dup2(dev_null, STDERR_FILENO);
+            close(dev_null);
+        }
     }
 
     /*A horrible smattering of beej.us, Linux Systems Programming and some Googling errors*/
@@ -352,8 +357,11 @@ int main(int argc, char *argv[]) {
         syslog(LOG_DEBUG, "Waiting for connection");
         *new_fd = accept(sockfd, (struct sockaddr *)&connect_addr, &sin_size);
         if (*new_fd == -1) {
-            syslog(LOG_ERR, "Accept failed: %s", strerror(errno));
             free(new_fd);
+            if (errno == EINTR) {
+                continue;
+            }
+            syslog(LOG_ERR, "Accept failed: %s", strerror(errno));
             sleep(1);
             continue;
         }
