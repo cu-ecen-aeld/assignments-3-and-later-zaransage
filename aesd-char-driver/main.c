@@ -20,6 +20,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/device.h>
+#include "aesd_ioctl.h"
 #include "aesdchar.h"
 
 int aesd_major = 0;
@@ -170,6 +171,14 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 
     mutex_unlock(&dev->lock);
     return count;
+}
+
+void aesd_ioctl(){
+
+}
+
+void aesd_llseek(){
+
 }
 
 struct file_operations aesd_fops = {
