@@ -176,6 +176,11 @@ ssize_t aesd_write(struct file *filep, const char __user *buf, size_t count, lof
 //Apparently the book is much older than this definition: /usr/src/linux-headers-5.4.0-216/include/linux/fs.h
 long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
 
+
+    uint8_t number_of_entries;
+    uint8_t i;
+    loff_t new_position = 0;
+
     // I need to handle locking and mutex etc
     struct aesd_dev *dev = filep->private_data;
 
