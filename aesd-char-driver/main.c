@@ -176,52 +176,44 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 //Apparently the book is much older than this definition: /usr/src/linux-headers-5.4.0-216/include/linux/fs.h
 long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
 
-    switch(cmd){
-        case SCULL_IORESET:
-        scull_quantum = SCULL_QUANTUM;
-        scull_qset = SCULL_QSET;
+    // I need to handle locking and mutex etc
+    struct aesd_dev *dev = filep->private_data;
 
-        case SCULL_IOCSQUANTUM:
-        if (! capable (CAP_SYS_ADMIN)){
-            return -EPERM;
-        }
-        retval = __get_user(scull_quantum, (int __user *) arg);
-        break;
+    struct aesd_seekto seekto;
 
-        case SCULL_IOCTQUANTUM:
-        if (! capable (CAP_SYS_ADMIN)){
-            return -EPERM;
-        }
-        scull_quantum = arg;
-        break;
-
-        case SCULL_IOCGQUANTUM:
-        retval = __put_user(scull_quantum, (int __user *) arg);
-        break;
-
-        case SCULL_IOCQQUANTUM:
-        return scull_quantum;
-
-        case SCULL_IOCXQUANTU:
-        if ( ! capable (CAP_SYS_ADMIN)){
-            return -EPERM;
-        }
-        tmp = scull_quantum;
-        scull_quantum = arg;
-        return tmp;
-
-        default:
-        return -ENOTTY;
+    if (copy_from_user(&seekto, (struct aesd_seekto __user *) arg, sizeof(seekto))){
+        return -EFAULT;
+    }
+    if (mutex_lock_interruptible(&dev->lock)) {
+        return -ERESTARTSYS;
     }
 
-    return retval;
+    switch(cmd){
+        case AESDCHAR_IOCSEEKTO:
+            // Let me capture the bytes here and calculate.
+            break;
+
+        default:
+            mutex_unlock(&dev->lock);
+            return -ENOTTY;
+    }
+
+    mutex_unlock(&dev->lock);
+    return 0;
 
 }
 
 loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
 
+    // I need to handle locking and mutex here.
+
     struct scull_dev *dev = filep->private_data;
+
     loff_t newpos;
+
+    if (mutex_lock_interruptible(&dev->lock)) {
+        return -ERESTARTSYS;
+    }
 
     switch(whence){
         case 0: //seek set
@@ -241,6 +233,8 @@ loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
     }
     if (newpos <0) return -EINVAL;
     filep->f_pos = newpos;
+
+    mutex_unlock(&dev->lock);
     return newpos;
 
 }
