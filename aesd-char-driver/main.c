@@ -33,20 +33,20 @@ struct aesd_dev aesd_device;
 
 static int aesd_setup_cdev(struct aesd_dev *dev);
 
-int aesd_open(struct inode *inode, struct file *filp)
+int aesd_open(struct inode *inode, struct file *filep)
 {
     PDEBUG("open");
-    filp->private_data = container_of(inode->i_cdev, struct aesd_dev, cdev);
+    filep->private_data = container_of(inode->i_cdev, struct aesd_dev, cdev);
     return 0;
 }
 
-int aesd_release(struct inode *inode, struct file *filp)
+int aesd_release(struct inode *inode, struct file *filep)
 {
     PDEBUG("release");
     return 0;
 }
 
-ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+ssize_t aesd_read(struct file *filep, char __user *buf, size_t count, loff_t *f_pos)
 {
     struct aesd_dev *dev;
     struct aesd_buffer_entry *entry;
@@ -59,7 +59,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     if (count == 0)
         return 0;
 
-    dev = (struct aesd_dev *)filp->private_data;
+    dev = (struct aesd_dev *)filep->private_data;
 
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
@@ -86,7 +86,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     return copied;
 }
 
-ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+ssize_t aesd_write(struct file *filep, const char __user *buf, size_t count, loff_t *f_pos)
 {
     struct aesd_dev *dev;
     char *new_pending;
@@ -99,7 +99,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     if (count == 0)
         return 0;
 
-    dev = (struct aesd_dev *)filp->private_data;
+    dev = (struct aesd_dev *)filep->private_data;
 
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
