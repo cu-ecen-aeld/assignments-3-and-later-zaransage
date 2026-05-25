@@ -173,20 +173,85 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     return count;
 }
 
-void aesd_ioctl(){
+//Apparently the book is much older than this definition: /usr/src/linux-headers-5.4.0-216/include/linux/fs.h
+long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
+
+    switch(cmd){
+        case SCULL_IORESET:
+        scull_quantum = SCULL_QUANTUM;
+        scull_qset = SCULL_QSET;
+
+        case SCULL_IOCSQUANTUM:
+        if (! capable (CAP_SYS_ADMIN)){
+            return -EPERM;
+        }
+        retval = __get_user(scull_quantum, (int __user *) arg);
+        break;
+
+        case SCULL_IOCTQUANTUM:
+        if (! capable (CAP_SYS_ADMIN)){
+            return -EPERM;
+        }
+        scull_quantum = arg;
+        break;
+
+        case SCULL_IOCGQUANTUM:
+        retval = __put_user(scull_quantum, (int __user *) arg);
+        break;
+
+        case SCULL_IOCQQUANTUM:
+        return scull_quantum;
+
+        case SCULL_IOCXQUANTU:
+        if ( ! capable (CAP_SYS_ADMIN)){
+            return -EPERM;
+        }
+        tmp = scull_quantum;
+        scull_quantum = arg;
+        return tmp;
+
+        default:
+        return -ENOTTY;
+    }
+
+    return retval;
 
 }
 
-void aesd_llseek(){
+loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
+
+    struct scull_dev *dev = filep->private_data;
+    loff_t newpos;
+
+    switch(whence){
+        case 0: //seek set
+        newpos = off;
+        break;
+
+        case 1: //seek cur
+        newpos = filep->f_pos + off;
+        break;
+
+        case 2: // seek end
+        newpos = dev->size + off;
+        break;
+
+        default: // error
+        return -EINVAL;
+    }
+    if (newpos <0) return -EINVAL;
+    filep->f_pos = newpos;
+    return newpos;
 
 }
 
 struct file_operations aesd_fops = {
-    .owner   = THIS_MODULE,
-    .read    = aesd_read,
-    .write   = aesd_write,
-    .open    = aesd_open,
-    .release = aesd_release,
+    .owner          = THIS_MODULE,
+    .read           = aesd_read,
+    .write          = aesd_write,
+    .open           = aesd_open,
+    .release        = aesd_release,
+    .unlocked_ioctl = aesd_ioctl,
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
