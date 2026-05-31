@@ -1,5 +1,7 @@
-  #include <stdio.h>
-  #include "../../aesd-char-driver/aesd-circular-buffer.c"
+#include <stdio.h>
+#include "../../aesd-char-driver/aesd-circular-buffer.c"
+#include "../../aesd-char-driver/aesd_ioctl.h"
+
 
   int main() {
 
