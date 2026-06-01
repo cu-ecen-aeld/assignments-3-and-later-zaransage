@@ -205,18 +205,18 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
                 // (if even) or of the actual size of the queue for dynamic allocation.
                 total_entries = ((dev->buffer.in_offs - dev->buffer.out_offs) + AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
             }
-            
+
             if (seekto.write_cmd >= total_entries) {
                 return -EINVAL;
             }
 
             // Okay, for all write commands, lets use the offset for the position we need.
             for (i = 0; i < seekto.write_cmd; i++) {
-                size_t my_index  = dev->buffer.out_offs + i % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+                size_t my_index  = (dev->buffer.out_offs + i) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
                 new_position += dev->buffer.entry[index].size;
             }
 
-            size_t write_index = dev->buffer.out_offs + seekto.write_cmd % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            size_t write_index = (dev->buffer.out_offs + seekto.write_cmd) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
 
             if (seekto.write_cmd_offset >= dev->buffer.entry[write_index].size) {
                 return -EINVAL;
