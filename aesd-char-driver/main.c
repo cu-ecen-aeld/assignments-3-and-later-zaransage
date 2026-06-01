@@ -213,7 +213,7 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
             // Okay, for all write commands, lets use the offset for the position we need.
             for (i = 0; i < seekto.write_cmd; i++) {
                 size_t my_index  = (dev->buffer.out_offs + i) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-                new_position += dev->buffer.entry[index].size;
+                new_position += dev->buffer.entry[my_index].size;
             }
 
             size_t write_index = (dev->buffer.out_offs + seekto.write_cmd) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
