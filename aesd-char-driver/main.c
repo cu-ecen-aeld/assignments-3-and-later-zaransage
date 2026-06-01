@@ -207,6 +207,7 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
             }
 
             if (seekto.write_cmd >= total_entries) {
+                mutex_unlock(&dev->lock);
                 return -EINVAL;
             }
 
@@ -219,6 +220,7 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
             size_t write_index = (dev->buffer.out_offs + seekto.write_cmd) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
 
             if (seekto.write_cmd_offset >= dev->buffer.entry[write_index].size) {
+                mutex_unlock(&dev->lock);
                 return -EINVAL;
             }
 
