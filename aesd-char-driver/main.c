@@ -217,12 +217,17 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
                 new_position += dev->buffer.entry[my_index].size;
             }
 
+            // Some kind of error condition without braces
+            {
             size_t write_index = (dev->buffer.out_offs + seekto.write_cmd) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
 
             if (seekto.write_cmd_offset >= dev->buffer.entry[write_index].size) {
                 mutex_unlock(&dev->lock);
                 return -EINVAL;
+              }
             }
+
+            new_position += seekto.write_cmd_offset;
 
             filep->f_pos = new_position;
 
