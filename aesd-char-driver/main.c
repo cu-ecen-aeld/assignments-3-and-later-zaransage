@@ -174,10 +174,10 @@ ssize_t aesd_write(struct file *filep, const char __user *buf, size_t count, lof
 }
 
 //Apparently the book is much older than this definition: /usr/src/linux-headers-5.4.0-216/include/linux/fs.h
-long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
+long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
 
 
-    size_t number_of_entries;
+    size_t total_entries;
     size_t i;
     loff_t new_position = 0;
 
@@ -186,9 +186,10 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
 
     struct aesd_seekto seekto;
 
-    if (copy_from_user(&seekto, (struct aesd_seekto __user *) arg, sizeof(seekto))){
+    if (copy_from_user(&seekto, (struct aesd_seekto __user *) arg, sizeof(seekto))) {
         return -EFAULT;
     }
+    
     if (mutex_lock_interruptible(&dev->lock)) {
         return -ERESTARTSYS;
     }
@@ -208,8 +209,19 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
                 return -EINVAL;
             }
 
-            
+            // Okay, for all write commands, lets use the offset for the position we need.
+            for (i = 0; i < seekto.write_cmd; i++) {
+                size_t my_index  = dev->buffer.out_offs + i % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+                new_position += dev->buffer.entry[index].size;
+            }
 
+            size_t write_index = dev->buffer.out_offs + seekto.write_cmd % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+
+            if (seekto.write_cmd_offset >= dev->buffer.entry[write_index].size) {
+                return -EINVAL;
+            }
+
+            filep->f_pos = new_position;
 
             break;
 
