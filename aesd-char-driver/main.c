@@ -189,7 +189,7 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
     if (copy_from_user(&seekto, (struct aesd_seekto __user *) arg, sizeof(seekto))) {
         return -EFAULT;
     }
-    
+
     if (mutex_lock_interruptible(&dev->lock)) {
         return -ERESTARTSYS;
     }
@@ -204,6 +204,7 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
                 // Give me the difference of the 'in' vs 'out' offset and total size, then give me a modulous of 2 
                 // (if even) or of the actual size of the queue for dynamic allocation.
                 total_entries = ((dev->buffer.in_offs - dev->buffer.out_offs) + AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            }
             
             if (seekto.write_cmd >= total_entries) {
                 return -EINVAL;
