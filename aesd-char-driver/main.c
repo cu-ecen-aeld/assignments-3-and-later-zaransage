@@ -177,8 +177,8 @@ ssize_t aesd_write(struct file *filep, const char __user *buf, size_t count, lof
 long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
 
 
-    uint8_t number_of_entries;
-    uint8_t i;
+    size_t number_of_entries;
+    size_t i;
     loff_t new_position = 0;
 
     // I need to handle locking and mutex etc
@@ -196,6 +196,21 @@ long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg){
     switch(cmd){
         case AESDCHAR_IOCSEEKTO:
             // Let me capture the bytes here and calculate.
+
+            if (dev->buffer.full) {
+                total_entries = AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            } else {
+                // Give me the difference of the 'in' vs 'out' offset and total size, then give me a modulous of 2 
+                // (if even) or of the actual size of the queue for dynamic allocation.
+                total_entries = ((dev->buffer.in_offs - dev->buffer.out_offs) + AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            
+            if (seekto.write_cmd >= total_entries) {
+                return -EINVAL;
+            }
+
+            
+
+
             break;
 
         default:
@@ -212,7 +227,7 @@ loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
 
     // I need to handle locking and mutex here.
 
-    struct scull_dev *dev = filep->private_data;
+    struct aesd_dev *dev = filep->private_data;
 
     loff_t newpos;
 
@@ -222,24 +237,43 @@ loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
 
     switch(whence){
         case 0: //seek set
-        newpos = off;
+          newpos = offset;
         break;
 
         case 1: //seek cur
-        newpos = filep->f_pos + off;
+          newpos = filep->f_pos + offset;
         break;
 
         case 2: // seek end
-        newpos = dev->size + off;
-        break;
-
+        {
+        // Let me reuse some of the core logic from aesd-circular-buffer.h
+          loff_t total_size = 0;
+          size_t index;
+          struct aesd_buffer_entry *entryptr;
+        
+          AESD_CIRCULAR_BUFFER_FOREACH(entryptr, &dev->buffer, index) {
+              if (entryptr->buffptr){
+                  total_size += entryptr->size;
+              }
+          }
+            newpos = total_size + offset;
+            break;
+        }
+                          
         default: // error
+          mutex_unlock(&dev->lock);
         return -EINVAL;
-    }
-    if (newpos <0) return -EINVAL;
-    filep->f_pos = newpos;
+        }
+ 
+    if (newpos < 0) {
+      mutex_unlock(&dev->lock);
+      return -EINVAL;
+      }
 
-    mutex_unlock(&dev->lock);
+      filep->f_pos = newpos;
+    
+      mutex_unlock(&dev->lock);
+    
     return newpos;
 
 }
@@ -251,6 +285,7 @@ struct file_operations aesd_fops = {
     .open           = aesd_open,
     .release        = aesd_release,
     .unlocked_ioctl = aesd_ioctl,
+    .llseek         = aesd_llseek,
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
@@ -318,7 +353,7 @@ int aesd_init_module(void)
 
 void aesd_cleanup_module(void)
 {
-    uint8_t index;
+    size_t index;
     struct aesd_buffer_entry *entry;
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
