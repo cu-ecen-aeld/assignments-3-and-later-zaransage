@@ -15,6 +15,8 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include "aesd_ioctl.h"
 
 #define PORT "9000"
 
@@ -164,12 +166,37 @@ void *client_thread(void *arg) {
         // Okay. I have a buffer. I have a value. I have a size of that value.
         // When I read the default constant string from the buffer I only compare the size of my const
         // And only letter per letter values. If that returns the return values 0, we're good.
-        if (strncmp(buffer, ioctl_value, strlen(ioctl_value) == 0)) {
+        if (strncmp(buffer, ioctl_value, strlen(ioctl_value)) == 0) {
 
             // Okay, I think, capture the values and then lets seek the values and spit them back.
-            
+
+            uint32_t my_offset;
+            uint32_t my_command;
             
 
+            const char *after_prefix = buffer + strlen(ioctl_value);
+
+            if (sscanf(after_prefix, "%u,%u", &my_command, &my_offset) != 2) {
+                syslog(LOG_ERR, "Failed to parse the AESDCHAR_IOCSEEKTO values %s", strerror(errno));
+                break;
+            }
+
+            int my_value = open(FILEPATH, O_RDWR);
+            if (my_value < 0) {
+                syslog(LOG_DEBUG, "Tried to read ioctl command from buffer but failed: %s", strerror(errno));
+                close(my_value);
+                break;
+            }
+
+            struct aesd_seekto my_seekto = { my_command, my_offset };
+
+            if (ioctl(my_value, AESDCHAR_IOCSEEKTO, &my_seekto) < 0) {
+                syslog(LOG_ERR, "ioctl command send failed: %s", strerror(errno));
+                close(my_value);
+                break;
+            }
+
+            // Okay. Now I have to confirm the data, read it abd return it.
 
 
         } else {
