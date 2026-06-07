@@ -140,6 +140,9 @@ void *client_thread(void *arg) {
     char buffer[1024];
     ssize_t bytes_received;
 
+    // Okay, lets start to add retrofit to accept the ioctl command switch
+    const char *ioctl_value = "AESDCHAR_IOCSEEKTO:";
+
     syslog(LOG_DEBUG, "Client thread started for fd %d", client_fd);
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
@@ -156,6 +159,16 @@ void *client_thread(void *arg) {
         buffer[bytes_received] = '\0';
         syslog(LOG_DEBUG, "Received %zd bytes on fd %d", bytes_received, client_fd);
 
+        // New set of conditions to read values, seek values and return or just do what I was doing before
+
+        if (ioctl_value != "AESDCHAR_IOCSEEKTO:") {
+
+            // Okay, I think, capture the values and then lets seek the values and spit them back.
+            // I probably have to compare the string or something directly. Let me try just treating the current string as default ignore.
+
+
+
+        } else {
         pthread_mutex_lock(&mutex_for_files);
         FILE *fp = fopen(FILEPATH, "a");
         if (fp) {
@@ -193,6 +206,7 @@ void *client_thread(void *arg) {
             syslog(LOG_DEBUG, "Newline received on fd %d, closing", client_fd);
             break;
         }
+      }
     }
 
     close(client_fd);
