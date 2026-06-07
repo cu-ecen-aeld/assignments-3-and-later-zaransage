@@ -161,10 +161,14 @@ void *client_thread(void *arg) {
 
         // New set of conditions to read values, seek values and return or just do what I was doing before
 
-        if (ioctl_value != "AESDCHAR_IOCSEEKTO:") {
+        // Okay. I have a buffer. I have a value. I have a size of that value.
+        // When I read the default constant string from the buffer I only compare the size of my const
+        // And only letter per letter values. If that returns the return values 0, we're good.
+        if (strncmp(buffer, ioctl_value, strlen(ioctl_value) == 0)) {
 
             // Okay, I think, capture the values and then lets seek the values and spit them back.
-            // I probably have to compare the string or something directly. Let me try just treating the current string as default ignore.
+            
+            
 
 
 
