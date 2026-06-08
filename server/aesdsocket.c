@@ -184,7 +184,6 @@ void *client_thread(void *arg) {
             int my_value = open(FILEPATH, O_RDWR);
             if (my_value < 0) {
                 syslog(LOG_DEBUG, "Tried to read ioctl command from buffer but failed: %s", strerror(errno));
-                close(my_value);
                 break;
             }
 
@@ -197,7 +196,16 @@ void *client_thread(void *arg) {
             }
 
             // Okay. Now I have to confirm the data, read it abd return it.
+            // Borrow what we are doing for fd already.
 
+            while ((bytes_received = read(my_value, buffer, sizeof(buffer))) > 0 ) {
+                if (send(client_fd, buffer, bytes_received, 0) < 0) {
+                    syslog(LOG_ERR, "Error on fd %d: %s", client_fd, strerror(errno));
+                    break;
+                }
+            }
+
+            close(my_value);
 
         } else {
         pthread_mutex_lock(&mutex_for_files);
@@ -214,9 +222,11 @@ void *client_thread(void *arg) {
         } else {
             syslog(LOG_ERR, "Client thread failed to open %s: %s", FILEPATH, strerror(errno));
         }
+
         pthread_mutex_unlock(&mutex_for_files);
 
         pthread_mutex_lock(&mutex_for_files);
+
         fp = fopen(FILEPATH, "r");
         if (fp) {
             while ((bytes_received = fread(buffer, 1, 1024, fp)) > 0) {
@@ -226,6 +236,7 @@ void *client_thread(void *arg) {
                     break;
                 }
             }
+
             fclose(fp);
             syslog(LOG_DEBUG, "Client thread sent file contents");
         } else {
