@@ -15,6 +15,8 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include "../aesd-char-driver/aesd_ioctl.h"
 
 #define PORT "9000"
 
@@ -140,6 +142,9 @@ void *client_thread(void *arg) {
     char buffer[1024];
     ssize_t bytes_received;
 
+    // Okay, lets start to add retrofit to accept the ioctl command switch
+    const char *ioctl_value = "AESDCHAR_IOCSEEKTO:";
+
     syslog(LOG_DEBUG, "Client thread started for fd %d", client_fd);
 
     while (!caught_sigint && !caught_sigterm) { // eah... I don't really like what I did here.
@@ -156,6 +161,53 @@ void *client_thread(void *arg) {
         buffer[bytes_received] = '\0';
         syslog(LOG_DEBUG, "Received %zd bytes on fd %d", bytes_received, client_fd);
 
+        // New set of conditions to read values, seek values and return or just do what I was doing before
+
+        // Okay. I have a buffer. I have a value. I have a size of that value.
+        // When I read the default constant string from the buffer I only compare the size of my const
+        // And only letter per letter values. If that returns the return values 0, we're good.
+        if (strncmp(buffer, ioctl_value, strlen(ioctl_value)) == 0) {
+
+            // Okay, I think, capture the values and then lets seek the values and spit them back.
+
+            uint32_t my_offset;
+            uint32_t my_command;
+            
+
+            const char *after_prefix = buffer + strlen(ioctl_value);
+
+            if (sscanf(after_prefix, "%u,%u", &my_command, &my_offset) != 2) {
+                syslog(LOG_ERR, "Failed to parse the AESDCHAR_IOCSEEKTO values %s", strerror(errno));
+                break;
+            }
+
+            int my_value = open(FILEPATH, O_RDWR);
+            if (my_value < 0) {
+                syslog(LOG_DEBUG, "Tried to read ioctl command from buffer but failed: %s", strerror(errno));
+                break;
+            }
+
+            struct aesd_seekto my_seekto = { my_command, my_offset };
+
+            if (ioctl(my_value, AESDCHAR_IOCSEEKTO, &my_seekto) < 0) {
+                syslog(LOG_ERR, "ioctl command send failed: %s", strerror(errno));
+                close(my_value);
+                break;
+            }
+
+            // Okay. Now I have to confirm the data, read it abd return it.
+            // Borrow what we are doing for fd already.
+
+            while ((bytes_received = read(my_value, buffer, sizeof(buffer))) > 0 ) {
+                if (send(client_fd, buffer, bytes_received, 0) < 0) {
+                    syslog(LOG_ERR, "Error on fd %d: %s", client_fd, strerror(errno));
+                    break;
+                }
+            }
+
+            close(my_value);
+
+        } else {
         pthread_mutex_lock(&mutex_for_files);
         FILE *fp = fopen(FILEPATH, "a");
         if (fp) {
@@ -170,9 +222,11 @@ void *client_thread(void *arg) {
         } else {
             syslog(LOG_ERR, "Client thread failed to open %s: %s", FILEPATH, strerror(errno));
         }
+
         pthread_mutex_unlock(&mutex_for_files);
 
         pthread_mutex_lock(&mutex_for_files);
+
         fp = fopen(FILEPATH, "r");
         if (fp) {
             while ((bytes_received = fread(buffer, 1, 1024, fp)) > 0) {
@@ -182,6 +236,7 @@ void *client_thread(void *arg) {
                     break;
                 }
             }
+
             fclose(fp);
             syslog(LOG_DEBUG, "Client thread sent file contents");
         } else {
@@ -193,6 +248,7 @@ void *client_thread(void *arg) {
             syslog(LOG_DEBUG, "Newline received on fd %d, closing", client_fd);
             break;
         }
+      }
     }
 
     close(client_fd);

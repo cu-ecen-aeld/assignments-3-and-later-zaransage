@@ -20,6 +20,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/device.h>
+#include "aesd_ioctl.h"
 #include "aesdchar.h"
 
 int aesd_major = 0;
@@ -32,20 +33,20 @@ struct aesd_dev aesd_device;
 
 static int aesd_setup_cdev(struct aesd_dev *dev);
 
-int aesd_open(struct inode *inode, struct file *filp)
+int aesd_open(struct inode *inode, struct file *filep)
 {
     PDEBUG("open");
-    filp->private_data = container_of(inode->i_cdev, struct aesd_dev, cdev);
+    filep->private_data = container_of(inode->i_cdev, struct aesd_dev, cdev);
     return 0;
 }
 
-int aesd_release(struct inode *inode, struct file *filp)
+int aesd_release(struct inode *inode, struct file *filep)
 {
     PDEBUG("release");
     return 0;
 }
 
-ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+ssize_t aesd_read(struct file *filep, char __user *buf, size_t count, loff_t *f_pos)
 {
     struct aesd_dev *dev;
     struct aesd_buffer_entry *entry;
@@ -58,7 +59,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     if (count == 0)
         return 0;
 
-    dev = (struct aesd_dev *)filp->private_data;
+    dev = (struct aesd_dev *)filep->private_data;
 
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
@@ -85,7 +86,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     return copied;
 }
 
-ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+ssize_t aesd_write(struct file *filep, const char __user *buf, size_t count, loff_t *f_pos)
 {
     struct aesd_dev *dev;
     char *new_pending;
@@ -98,7 +99,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     if (count == 0)
         return 0;
 
-    dev = (struct aesd_dev *)filp->private_data;
+    dev = (struct aesd_dev *)filep->private_data;
 
     if (mutex_lock_interruptible(&dev->lock))
         return -ERESTARTSYS;
@@ -172,12 +173,139 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     return count;
 }
 
+//Apparently the book is much older than this definition: /usr/src/linux-headers-5.4.0-216/include/linux/fs.h
+long aesd_ioctl(struct file *filep, unsigned int cmd, unsigned long arg) {
+
+
+    size_t total_entries;
+    size_t i;
+    loff_t new_position = 0;
+
+    // I need to handle locking and mutex etc
+    struct aesd_dev *dev = filep->private_data;
+
+    struct aesd_seekto seekto;
+
+    if (copy_from_user(&seekto, (struct aesd_seekto __user *) arg, sizeof(seekto))) {
+        return -EFAULT;
+    }
+
+    if (mutex_lock_interruptible(&dev->lock)) {
+        return -ERESTARTSYS;
+    }
+
+    switch(cmd){
+        case AESDCHAR_IOCSEEKTO:
+            // Let me capture the bytes here and calculate.
+
+            if (dev->buffer.full) {
+                total_entries = AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            } else {
+                // Give me the difference of the 'in' vs 'out' offset and total size, then give me a modulous of 2 
+                // (if even) or of the actual size of the queue for dynamic allocation.
+                total_entries = ((dev->buffer.in_offs - dev->buffer.out_offs) + AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+            }
+
+            if (seekto.write_cmd >= total_entries) {
+                mutex_unlock(&dev->lock);
+                return -EINVAL;
+            }
+
+            // Okay, for all write commands, lets use the offset for the position we need.
+            for (i = 0; i < seekto.write_cmd; i++) {
+                size_t my_index  = (dev->buffer.out_offs + i) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+                new_position += dev->buffer.entry[my_index].size;
+            }
+
+            // Some kind of error condition without braces
+            {
+            size_t write_index = (dev->buffer.out_offs + seekto.write_cmd) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+
+            if (seekto.write_cmd_offset >= dev->buffer.entry[write_index].size) {
+                mutex_unlock(&dev->lock);
+                return -EINVAL;
+              }
+            }
+
+            new_position += seekto.write_cmd_offset;
+
+            filep->f_pos = new_position;
+
+            break;
+
+        default:
+            mutex_unlock(&dev->lock);
+            return -ENOTTY;
+    }
+
+    mutex_unlock(&dev->lock);
+    return 0;
+
+}
+
+loff_t aesd_llseek(struct file *filep, loff_t offset, int whence){
+
+    // I need to handle locking and mutex here.
+
+    struct aesd_dev *dev = filep->private_data;
+
+    loff_t newpos;
+
+    if (mutex_lock_interruptible(&dev->lock)) {
+        return -ERESTARTSYS;
+    }
+
+    switch(whence){
+        case 0: //seek set
+          newpos = offset;
+        break;
+
+        case 1: //seek cur
+          newpos = filep->f_pos + offset;
+        break;
+
+        case 2: // seek end
+        {
+        // Let me reuse some of the core logic from aesd-circular-buffer.h
+          loff_t total_size = 0;
+          size_t index;
+          struct aesd_buffer_entry *entryptr;
+        
+          AESD_CIRCULAR_BUFFER_FOREACH(entryptr, &dev->buffer, index) {
+              if (entryptr->buffptr){
+                  total_size += entryptr->size;
+              }
+          }
+            newpos = total_size + offset;
+            break;
+        }
+                          
+        default: // error
+          mutex_unlock(&dev->lock);
+        return -EINVAL;
+        }
+ 
+    if (newpos < 0) {
+      mutex_unlock(&dev->lock);
+      return -EINVAL;
+      }
+
+      filep->f_pos = newpos;
+    
+      mutex_unlock(&dev->lock);
+    
+    return newpos;
+
+}
+
 struct file_operations aesd_fops = {
-    .owner   = THIS_MODULE,
-    .read    = aesd_read,
-    .write   = aesd_write,
-    .open    = aesd_open,
-    .release = aesd_release,
+    .owner          = THIS_MODULE,
+    .read           = aesd_read,
+    .write          = aesd_write,
+    .open           = aesd_open,
+    .release        = aesd_release,
+    .unlocked_ioctl = aesd_ioctl,
+    .llseek         = aesd_llseek,
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
@@ -245,7 +373,7 @@ int aesd_init_module(void)
 
 void aesd_cleanup_module(void)
 {
-    uint8_t index;
+    size_t index;
     struct aesd_buffer_entry *entry;
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
